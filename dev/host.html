@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Demo (dev) — site do cliente com o widget Pipeelo</title>
+    <style>
+      /* Página deliberadamente "hostil": estilos globais agressivos para
+         provar que o launcher e o painel não são contaminados pelo host. */
+      * { font-family: Georgia, 'Times New Roman', serif !important; }
+      body { margin: 0; color: #333; background: #fffdf7; line-height: 1.7; }
+      button { border-radius: 0; letter-spacing: 2px; }
+      header { background: linear-gradient(120deg, #0f172a, #1e293b); color: #fff; padding: 56px 24px; }
+      header h1 { margin: 0 0 8px; font-size: 34px; }
+      header p { margin: 0; opacity: 0.8; }
+      main { max-width: 720px; margin: 0 auto; padding: 32px 24px 120px; }
+      .painel-dev { background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 8px; padding: 16px; margin-bottom: 32px; }
+      .painel-dev code { background: #e0e7ff; padding: 2px 6px; border-radius: 4px; }
+      .painel-dev input { width: 100%; box-sizing: border-box; padding: 8px; margin: 8px 0; font-size: 14px; }
+      .painel-dev button { padding: 8px 16px; cursor: pointer; }
+      section { margin-bottom: 28px; }
+      footer { padding: 40px 24px; background: #f1f5f9; text-align: center; color: #64748b; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Loja Exemplo Ltda.</h1>
+      <p>Uma página de terceiro qualquer, com CSS hostil, hospedando o widget da Pipeelo.</p>
+    </header>
+
+    <main>
+      <div class="painel-dev">
+        <strong>Painel de teste (só existe nesta demo)</strong>
+        <p>
+          Identifier atual: <code id="current-id">—</code><br />
+          Cole o uuid de um registro <code>website_channels</code> e recarregue:
+        </p>
+        <input id="id-input" placeholder="ex.: 3f2a9c1e-…" />
+        <button onclick="location.search = '?id=' + encodeURIComponent(document.getElementById('id-input').value.trim())">
+          Usar este identifier
+        </button>
+        <p>
+          Comandos no console: <code>Pipeelo('open')</code> · <code>Pipeelo('close')</code> ·
+          <code>Pipeelo('toggle')</code>. Um <code>Pipeelo('toggle')</code> já foi enfileirado
+          <em>antes</em> do loader carregar para exercitar a fila — comente no fonte se atrapalhar.
+        </p>
+      </div>
+
+      <section>
+        <h2>Sobre a loja</h2>
+        <p>Conteúdo longo para testar o scroll da página host com o widget aberto e fechado. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer nec odio. Praesent libero. Sed cursus ante dapibus diam. Sed nisi. Nulla quis sem at nibh elementum imperdiet.</p>
+        <p>Duis sagittis ipsum. Praesent mauris. Fusce nec tellus sed augue semper porta. Mauris massa. Vestibulum lacinia arcu eget nulla. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos.</p>
+      </section>
+      <section>
+        <h2>Formulário do host</h2>
+        <p>Campo para testar disputa de foco com o widget:</p>
+        <input placeholder="Um input do site do cliente" style="padding: 8px; width: 60%" />
+      </section>
+      <section>
+        <h2>Mais conteúdo</h2>
+        <p>Curabitur sodales ligula in libero. Sed dignissim lacinia nunc. Curabitur tortor. Pellentesque nibh. Aenean quam. In scelerisque sem at dolor. Maecenas mattis. Sed convallis tristique sem. Proin ut ligula vel nunc egestas porttitor.</p>
+        <p>Morbi lectus risus, iaculis vel, suscipit quis, luctus non, massa. Fusce ac turpis quis ligula lacinia aliquet. Mauris ipsum. Nulla metus metus, ullamcorper vel, tincidunt sed, euismod in, nibh.</p>
+        <p>Quisque volutpat condimentum velit. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos. Nam nec ante. Sed lacinia, urna non tincidunt mattis, tortor neque adipiscing diam, a cursus ipsum ante quis turpis.</p>
+      </section>
+    </main>
+
+    <footer>Loja Exemplo Ltda. — página de demonstração do widget Pipeelo (ambiente dev)</footer>
+
+    <script>
+      // Versão DEV do snippet: carrega o entry TypeScript direto do vite dev
+      // server como module (currentScript é null em module — exercita o
+      // fallback por scan). A versão de produção do snippet está em
+      // public/demo.html e no README.
+      (function (w, d) {
+        var id = new URLSearchParams(location.search).get('id') || '';
+        document.getElementById('current-id').textContent = id || '(nenhum — use o painel acima)';
+        document.getElementById('id-input').value = id;
+        if (!id) return;
+        w.Pipeelo = w.Pipeelo || function () { (w.Pipeelo.q = w.Pipeelo.q || []).push(arguments) };
+        w.Pipeelo('toggle'); // testa a fila pré-carregamento a cada load
+        var s = d.createElement('script');
+        s.type = 'module';
+        s.async = true;
+        s.src = '/v1/src/loader/index.ts?id=' + encodeURIComponent(id);
+        s.setAttribute('data-pipeelo-id', id);
+        d.head.appendChild(s);
+      })(window, document);
+    </script>
+  </body>
+</html>

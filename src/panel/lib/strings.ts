@@ -1,0 +1,25 @@
+// Todas as strings visíveis do painel (pt-BR), centralizadas para facilitar
+// i18n futura junto com a config do canal.
+export const STR = {
+  brandFallback: 'Chat',
+  headerSubtitle: 'Estamos aqui para ajudar',
+  close: 'Fechar chat',
+  inputPlaceholder: 'Escreva sua mensagem…',
+  send: 'Enviar mensagem',
+  attach: 'Anexar arquivo',
+  sending: 'Enviando…',
+  notDelivered: 'Não entregue',
+  retry: 'Tentar de novo',
+  reconnecting: 'Reconectando…',
+  historyError: 'Não foi possível carregar a conversa.',
+  tryAgain: 'Tentar novamente',
+  startError: 'Não foi possível iniciar o chat.',
+  fileTooLarge: (limit: string) => `Arquivo muito grande (máx. ${limit}).`,
+  fileUnsupported: 'Tipo de arquivo não suportado.',
+  documentLabel: 'Documento',
+  openFile: 'Abrir',
+  imageAlt: 'Imagem enviada na conversa',
+  videoUnsupported: 'Seu navegador não reproduz este vídeo.',
+  loadingOlder: 'Carregando mensagens…',
+  poweredBy: 'Powered by',
+};

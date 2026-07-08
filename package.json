@@ -1,0 +1,25 @@
+{
+  "name": "@pipeelo/widget",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build && vite build --config vite.loader.config.ts && node scripts/check-loader-size.mjs",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "preact": "^10.26.0",
+    "pusher-js": "^8.4.0"
+  },
+  "devDependencies": {
+    "@preact/preset-vite": "^2.10.1",
+    "@types/node": "^22.10.0",
+    "typescript": "^5.8.0",
+    "vite": "^6.3.0"
+  }
+}

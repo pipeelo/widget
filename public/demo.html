@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Demo — widget Pipeelo (snippet de produção)</title>
+    <style>
+      body { margin: 0; font-family: system-ui, sans-serif; color: #334155; background: #f8fafc; line-height: 1.7; }
+      header { background: linear-gradient(135deg, #01d5ac, #00b792); color: #fff; padding: 56px 24px; }
+      header h1 { margin: 0 0 8px; font-size: 32px; }
+      header p { margin: 0; opacity: 0.9; }
+      main { max-width: 680px; margin: 0 auto; padding: 32px 24px 140px; }
+      .aviso { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px 20px; }
+      .aviso code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; }
+      input.host-input { padding: 8px; width: 60%; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Demo do widget Pipeelo</h1>
+      <p>Esta página usa o snippet real de produção, apontando para o loader.js compilado.</p>
+    </header>
+    <main>
+      <div class="aviso">
+        <p>
+          Abra com <code>?id={identifier}</code> (uuid de um registro
+          <code>website_channels</code>). Comandos: <code>Pipeelo('open')</code>,
+          <code>Pipeelo('close')</code>, <code>Pipeelo('toggle')</code>.
+        </p>
+      </div>
+      <h2>Conteúdo do site</h2>
+      <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer nec odio. Praesent libero. Sed cursus ante dapibus diam. Sed nisi. Nulla quis sem at nibh elementum imperdiet. Duis sagittis ipsum. Praesent mauris.</p>
+      <p>Fusce nec tellus sed augue semper porta. Mauris massa. Vestibulum lacinia arcu eget nulla. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos.</p>
+      <p>Campo do site para testar foco: <input class="host-input" placeholder="Um input do site" /></p>
+    </main>
+
+    <script>
+      // Snippet REAL (idêntico ao colado pelo cliente), com o identifier vindo
+      // da query string apenas por ser uma página de demonstração.
+      (function (w, d) {
+        var id = new URLSearchParams(location.search).get('id');
+        if (!id) return;
+        w.Pipeelo = w.Pipeelo || function () { (w.Pipeelo.q = w.Pipeelo.q || []).push(arguments) };
+        var s = d.createElement('script');
+        s.async = true;
+        s.src = '/v1/loader.js?id=' + encodeURIComponent(id);
+        d.head.appendChild(s);
+      })(window, document);
+    </script>
+  </body>
+</html>
