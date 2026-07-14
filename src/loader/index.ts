@@ -3,6 +3,7 @@
 // nada fora de src/shared (orçamento < 6 kB gzip).
 import { safeAccentColor, textColorOn } from '../shared/color';
 import { normalizeTheme, prefersDarkNow, themeIsDark } from '../shared/theme';
+import { normalizeDisplayMode } from '../shared/widget-config';
 import { createBridge } from './bridge';
 import { fetchWidgetConfig } from './config';
 import { API_URL } from './env';
@@ -52,6 +53,7 @@ function start(
   panelBase: string
 ): void {
   const session = createSession(identifier);
+  let fullscreen = false;
   let open = false;
   let disabled = false;
 
@@ -96,7 +98,7 @@ function start(
   }
 
   function doClose(): void {
-    if (!open) return;
+    if (fullscreen || !open) return; // tela cheia não fecha
     open = false;
     frame.stopViewportTracking();
     frame.setOpen(false);
@@ -105,10 +107,10 @@ function start(
     bridge.send({ __pipeelo: true, type: 'visibility', open: false });
   }
 
-  launcher.mount();
-
-  // Visitante recorrente: iframe escondido desde o boot mantém o socket vivo
-  // e o badge de não-lidas funcionando sem abrir o painel.
+  // A bolha NÃO é montada no boot: o modo (vindo da config) decide se ela
+  // aparece. O visitante recorrente ainda cria o iframe escondido aqui para
+  // manter o socket vivo — seguro porque o launcher, mesmo sem mount, recebe
+  // setBadge no seu DOM destacado e reaparece com o count certo ao montar.
   if (session.getToken()) ensureFrame();
 
   void fetchWidgetConfig(API_URL, identifier).then((result) => {
@@ -120,14 +122,27 @@ function start(
         frame.destroy();
         launcher.remove();
         warn(`canal "${identifier}" não encontrado — widget desativado`);
+        return;
       }
-      // Erro de rede: segue com os defaults da marca.
+      // Erro de rede: floating com os defaults da marca (teal do CSS).
+      launcher.mount();
       return;
     }
 
     const cfg = result.config;
+
+    if (normalizeDisplayMode(cfg.display_mode) === 'fullscreen') {
+      // Tela cheia: o iframe ocupa a viewport, aberto desde o boot. Sem bolha,
+      // sem teaser, sem fechar — o chat é a página.
+      fullscreen = true;
+      document.documentElement.classList.add('pipeelo-fullscreen');
+      doOpen();
+      return;
+    }
+
     const accent = safeAccentColor(cfg.widget_color);
     launcher.setAppearance(accent, textColorOn(accent), !cfg.widget_color);
+    launcher.mount();
 
     const previewText = typeof cfg.message_preview === 'string' ? cfg.message_preview.trim() : '';
     if (previewText && !session.isTeaserDismissed()) {

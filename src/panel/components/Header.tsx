@@ -20,6 +20,8 @@ export function Header(props: {
   /** Sem widget_color configurada: usa o gradiente da marca Pipeelo. */
   brandGradient: boolean;
   loading: boolean;
+  /** Fullscreen: sem o chevron de fechar (o chat é a página). */
+  showClose: boolean;
   onClose(): void;
 }) {
   const initial = (props.name.trim().charAt(0) || 'P').toUpperCase();
@@ -34,11 +36,12 @@ export function Header(props: {
         ) : (
           <span class="header-name">{props.name}</span>
         )}
-        <span class="header-sub">{STR.headerSubtitle}</span>
       </div>
-      <button type="button" class="header-close" aria-label={STR.close} onClick={props.onClose}>
-        <ChevronIcon />
-      </button>
+      {props.showClose && (
+        <button type="button" class="header-close" aria-label={STR.close} onClick={props.onClose}>
+          <ChevronIcon />
+        </button>
+      )}
     </header>
   );
 }

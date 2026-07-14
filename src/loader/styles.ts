@@ -22,6 +22,11 @@ export const LOADER_CSS = `
 @supports (height:100dvh){.pipeelo-frame{height:calc(100dvh - 104px)}}
 .pipeelo-frame.pipeelo-on{opacity:1;transform:none;visibility:visible;pointer-events:auto;transition:opacity .2s ease,transform .25s cubic-bezier(.21,1.02,.55,1.01)}
 
+/* Canal em tela cheia (display_mode): o frame é a viewport inteira — mesmo
+   layout da media query mobile, agora incondicional por classe no <html>. */
+html.pipeelo-fullscreen .pipeelo-frame{inset:0;width:100%;height:100%;max-width:none;max-height:none;border-radius:0;transform:none}
+html.pipeelo-fullscreen,html.pipeelo-fullscreen body{overflow:hidden!important}
+
 .pipeelo-teaser{position:fixed;z-index:${Z - 2};right:20px;bottom:84px;width:min(320px,calc(100vw - 40px));margin:0;padding:0;box-sizing:border-box;font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;opacity:0;transform:translateY(8px);transition:opacity .25s ease,transform .25s ease}
 .pipeelo-teaser.pipeelo-in{opacity:1;transform:none}
 .pipeelo-teaser-card{display:block;width:100%;margin:0;padding:14px 40px 14px 16px;border:1px solid #eef1f4;border-radius:14px;background:#fff;color:#2d3748;box-shadow:0 8px 28px rgba(0,0,0,.12);cursor:pointer;text-align:left;box-sizing:border-box;font-family:inherit;letter-spacing:normal;text-transform:none;transition:transform .16s ease,box-shadow .16s ease}

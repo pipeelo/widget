@@ -6,8 +6,14 @@ export type ConfigResult = { ok: true; config: WidgetConfig } | { ok: false; not
 // tem Cache-Control público de 5 min. 404 = identifier inexistente (o boot
 // desmonta o widget); erro de rede mantém os defaults da marca.
 export async function fetchWidgetConfig(apiUrl: string, identifier: string): Promise<ConfigResult> {
+  // A bolha espera esta resposta para decidir o modo — um fetch pendurado não
+  // pode deixar o site sem widget. O timeout aborta e cai nos defaults da marca.
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 10000);
   try {
-    const res = await fetch(`${apiUrl}/website-channel/config/${encodeURIComponent(identifier)}`);
+    const res = await fetch(`${apiUrl}/website-channel/config/${encodeURIComponent(identifier)}`, {
+      signal: controller.signal,
+    });
     if (res.status === 404) return { ok: false, notFound: true };
     if (!res.ok) return { ok: false, notFound: false };
     const data: unknown = await res.json();
@@ -15,5 +21,7 @@ export async function fetchWidgetConfig(apiUrl: string, identifier: string): Pro
     return { ok: true, config: data as WidgetConfig };
   } catch {
     return { ok: false, notFound: false };
+  } finally {
+    clearTimeout(timer);
   }
 }

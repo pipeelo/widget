@@ -2,7 +2,6 @@
 // i18n futura junto com a config do canal.
 export const STR = {
   brandFallback: 'Chat',
-  headerSubtitle: 'Estamos aqui para ajudar',
   close: 'Fechar chat',
   inputPlaceholder: 'Escreva sua mensagem…',
   send: 'Enviar mensagem',

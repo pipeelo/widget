@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import { safeAccentColor, textColorOn } from '../shared/color';
 import { normalizeTheme, prefersDarkNow, themeIsDark } from '../shared/theme';
+import { normalizeDisplayMode } from '../shared/widget-config';
 import { fetchConfig } from './api/client';
 import type { WidgetConfig } from './api/types';
 import { initPanelBridge, isEmbedded, postToLoader } from './bridge';
@@ -82,13 +83,17 @@ export function App({ params }: { params: PanelParams }) {
     style.setProperty('--pip-on-primary', onAccent);
   }, [accent, onAccent]);
 
+  // Modo tela cheia (config do canal): sem chevron, sem Escape-fecha, sem rodapé.
+  const fullscreen = normalizeDisplayMode(config?.display_mode) === 'fullscreen';
+
   useEffect(() => {
+    if (fullscreen) return;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') postToLoader({ __pipeelo: true, type: 'close' });
     };
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
-  }, []);
+  }, [fullscreen]);
 
   // Imagem com presigned expirada: renova via histórico, no máximo 1x/30s
   // (evita loop de onError → refetch → onError).
@@ -110,6 +115,7 @@ export function App({ params }: { params: PanelParams }) {
         name={name}
         brandGradient={!config?.widget_color}
         loading={configLoading && !config}
+        showClose={!fullscreen}
         onClose={close}
       />
       {chat.socketDown && (
@@ -134,7 +140,7 @@ export function App({ params }: { params: PanelParams }) {
         onSendFile={chat.sendFileMessage}
         focusToken={focusToken}
       />
-      <Footer />
+      {!fullscreen && <Footer />}
     </div>
   );
 }

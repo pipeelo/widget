@@ -135,14 +135,6 @@ button {
   animation: pip-pulse 1.2s ease-in-out infinite;
 }
 
-.header-sub {
-  font-size: 12px;
-  opacity: 0.82;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
 .header-close {
   display: flex;
   align-items: center;
