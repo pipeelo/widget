@@ -105,8 +105,16 @@ export function MessageList(props: {
   useEffect(() => {
     const el = scrollerRef.current;
     if (!el) return;
+    // Coalescido em rAF: durante a animação do teclado, resize da janela e
+    // ResizeObserver disparam juntos várias vezes — um scrollTop síncrono por
+    // evento viraria layout thrashing.
+    let raf = 0;
     const repin = () => {
-      if (atBottomRef.current) el.scrollTop = el.scrollHeight;
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        if (atBottomRef.current) el.scrollTop = el.scrollHeight;
+      });
     };
     window.addEventListener('resize', repin);
     let observer: ResizeObserver | null = null;
@@ -117,6 +125,7 @@ export function MessageList(props: {
     return () => {
       window.removeEventListener('resize', repin);
       observer?.disconnect();
+      if (raf) cancelAnimationFrame(raf);
     };
   }, []);
 

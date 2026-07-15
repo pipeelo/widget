@@ -58,15 +58,36 @@ export function createFrameController(panelBase: string, opts: { title: string }
       if (!vv || !iframe || stopTracking) return;
       if (!force && !window.matchMedia('(max-width: 640px)').matches) return;
 
+      // A transição de transform do CSS (entrada/saída do painel) faria o
+      // espelhamento do teclado "correr atrás" de cada evento com 250ms de
+      // easing — sensação de travado, com o site aparecendo atrás durante a
+      // perseguição. Enquanto o tracking está ativo, só a opacidade
+      // transiciona; stopTracking devolve a folha de estilo.
+      iframe.style.transition = 'opacity .2s ease';
+
       let raf = 0;
       const apply = () => {
         raf = 0;
         if (!iframe) return;
-        iframe.style.height = vv.height + 'px';
-        iframe.style.transform = 'translateY(' + vv.offsetTop + 'px)';
+        // Teclado aberto = viewport visual bem menor que a layout (iOS e
+        // Android resizes-visual) ou deslocada. Sem teclado, LIMPA os inline
+        // e o CSS (height:100%) manda — assim um height antigo nunca fica
+        // preso (evento/rAF engolido em animação nativa do iOS se auto-cura
+        // no próximo evento) e, no Android com resizes-content, o layout já
+        // encolhido não é compensado duas vezes.
+        const keyboard = window.innerHeight - vv.height > 80 || vv.offsetTop > 1;
+        if (keyboard) {
+          iframe.style.height = vv.height + 'px';
+          iframe.style.transform = 'translateY(' + vv.offsetTop + 'px)';
+        } else {
+          iframe.style.height = '';
+          iframe.style.transform = '';
+        }
       };
       const onChange = () => {
-        if (!raf) raf = requestAnimationFrame(apply);
+        // cancel+reschedule: um rAF perdido não pode travar o gate p/ sempre.
+        if (raf) cancelAnimationFrame(raf);
+        raf = requestAnimationFrame(apply);
       };
       vv.addEventListener('resize', onChange);
       vv.addEventListener('scroll', onChange);
@@ -79,6 +100,7 @@ export function createFrameController(panelBase: string, opts: { title: string }
         if (iframe) {
           iframe.style.height = '';
           iframe.style.transform = '';
+          iframe.style.transition = '';
         }
       };
     },
