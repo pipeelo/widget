@@ -36,6 +36,18 @@ function findOwnScript(): HTMLScriptElement | null {
   return null;
 }
 
+// Página wrapper de app sem <meta viewport>: o iOS usa o viewport legado de
+// 980px e o chat renderia ~2.6x menor. Rede de segurança só para tela cheia
+// (o chat é a página) e só quando não existe nenhuma — nunca sobrescreve a
+// meta do autor; as docs mandam o host declarar a dele.
+function ensureViewportMeta(): void {
+  if (document.querySelector('meta[name="viewport"]')) return;
+  const meta = document.createElement('meta');
+  meta.name = 'viewport';
+  meta.content = 'width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content';
+  document.head.appendChild(meta);
+}
+
 // O snippet é async e costuma rodar com o body pronto, mas pode ser colado
 // no <head> de forma síncrona — não dá para assumir document.body.
 function whenBody(fn: () => void): void {
@@ -56,6 +68,10 @@ function start(
   let fullscreen = false;
   let open = false;
   let disabled = false;
+  // display_mode da config — null até ela chegar. Frame criado no boot
+  // (visitante recorrente) fica sem o hint; o painel cobre via pointer
+  // coarse e pela própria config.
+  let displayMode: string | null = null;
 
   injectStyles();
 
@@ -82,7 +98,12 @@ function start(
     // Sem marco de leitura (token pré-feature ou recém-cunhado): agora — evita
     // badge retroativo assustador na primeira vez.
     if (!session.getLastReadAt()) session.setLastReadAt(new Date().toISOString());
-    frame.create({ id: identifier, eid: token, lastread: session.getLastReadAt() });
+    frame.create({
+      id: identifier,
+      eid: token,
+      lastread: session.getLastReadAt(),
+      mode: displayMode,
+    });
   }
 
   function doOpen(): void {
@@ -94,7 +115,7 @@ function start(
     frame.setOpen(true);
     launcher.setOpen(true);
     bridge.send({ __pipeelo: true, type: 'visibility', open: true });
-    frame.startViewportTracking();
+    frame.startViewportTracking(fullscreen);
   }
 
   function doClose(): void {
@@ -130,11 +151,13 @@ function start(
     }
 
     const cfg = result.config;
+    displayMode = normalizeDisplayMode(cfg.display_mode);
 
-    if (normalizeDisplayMode(cfg.display_mode) === 'fullscreen') {
+    if (displayMode === 'fullscreen') {
       // Tela cheia: o iframe ocupa a viewport, aberto desde o boot. Sem bolha,
       // sem teaser, sem fechar — o chat é a página.
       fullscreen = true;
+      ensureViewportMeta();
       document.documentElement.classList.add('pipeelo-fullscreen');
       doOpen();
       return;

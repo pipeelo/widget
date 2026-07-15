@@ -99,6 +99,27 @@ export function MessageList(props: {
     atBottomRef.current = true;
   }, [props.open]);
 
+  // Teclado virtual (o loader encolhe o iframe via visualViewport; no Android
+  // o próprio layout encolhe) e autogrow do composer mudam a altura da lista:
+  // se estava no fundo, segue no fundo; rolado para cima, não pula.
+  useEffect(() => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    const repin = () => {
+      if (atBottomRef.current) el.scrollTop = el.scrollHeight;
+    };
+    window.addEventListener('resize', repin);
+    let observer: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== 'undefined') {
+      observer = new ResizeObserver(repin);
+      observer.observe(el);
+    }
+    return () => {
+      window.removeEventListener('resize', repin);
+      observer?.disconnect();
+    };
+  }, []);
+
   const sections = buildSections(state);
   const showWelcome = state.historyLoaded && state.order.length === 0 && Boolean(props.welcome);
 

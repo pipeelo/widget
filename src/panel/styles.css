@@ -19,6 +19,53 @@
   --pip-banner-bg: #fff8e1;
   --pip-banner-text: #8a6d1a;
   --pip-font: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  /* Tokens de tamanho — defaults do painel flutuante (400px, desktop). A
+     densidade mobile (tela cheia/app e dispositivos de toque) sobrescreve só
+     os VALORES em :root[data-density='mobile'], no fim do arquivo. Fora dela,
+     nada muda de pixel. */
+  --pip-fs-title: 15px;
+  --pip-fs-avatar: 16px;
+  --pip-fs-bubble: 14px;
+  --pip-fs-input: 14px;
+  --pip-fs-meta: 11px;
+  --pip-fs-msg-avatar: 11px;
+  --pip-fs-small: 13.5px;
+  --pip-fs-btn: 13px;
+  --pip-fs-banner: 12px;
+  --pip-fs-doc-open: 12px;
+  --pip-fs-composer-error: 12.5px;
+  --pip-ctl: 34px;
+  --pip-close: 32px;
+  --pip-icon-attach: 19px;
+  --pip-icon-send: 17px;
+  --pip-icon-doc: 20px;
+  --pip-icon-close: 20px;
+  --pip-avatar: 38px;
+  --pip-msg-avatar: 24px;
+  --pip-msg-gutter: 32px;
+  --pip-bubble-maxw: 82%;
+  --pip-bubble-pad: 9px 13px;
+  --pip-bubble-radius: 16px;
+  --pip-bubble-media-radius: 14px;
+  --pip-media-radius: 11px;
+  --pip-img-max: 240px;
+  --pip-video-max: 260px;
+  --pip-audio-w: 240px;
+  --pip-doc-min-w: 180px;
+  --pip-doc-name-max: 170px;
+  --pip-list-pad-top: 14px;
+  --pip-input-pad-y: 6px;
+  --pip-input-maxh: 100px;
+  --pip-composer-pad-y: 10px;
+  --pip-composer-gap: 6px;
+  --pip-skeleton-h: 38px;
+  /* Safe areas (notch/home indicator): 0 no flutuante, env() na densidade
+     mobile. Consumidas por calc aditivo — o flutuante paga `+ 0px`, exato. */
+  --pip-safe-top: 0px;
+  --pip-safe-right: 0px;
+  --pip-safe-bottom: 0px;
+  --pip-safe-left: 0px;
 }
 
 :root[data-theme='dark'] {
@@ -84,8 +131,9 @@ button {
   display: flex;
   align-items: center;
   gap: 12px;
-  min-height: 64px;
-  padding: 12px 16px;
+  min-height: calc(64px + var(--pip-safe-top));
+  padding: calc(12px + var(--pip-safe-top)) calc(16px + var(--pip-safe-right)) 12px
+    calc(16px + var(--pip-safe-left));
   background: var(--pip-primary);
   color: var(--pip-on-primary);
   flex-shrink: 0;
@@ -100,11 +148,11 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 38px;
-  height: 38px;
+  width: var(--pip-avatar);
+  height: var(--pip-avatar);
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.22);
-  font-size: 16px;
+  font-size: var(--pip-fs-avatar);
   font-weight: 600;
   flex-shrink: 0;
 }
@@ -117,7 +165,7 @@ button {
 }
 
 .header-name {
-  font-size: 15px;
+  font-size: var(--pip-fs-title);
   font-weight: 600;
   letter-spacing: -0.01em;
   white-space: nowrap;
@@ -139,8 +187,8 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: var(--pip-close);
+  height: var(--pip-close);
   border: 0;
   border-radius: 8px;
   background: none;
@@ -150,9 +198,21 @@ button {
   flex-shrink: 0;
 }
 
-.header-close:hover {
+@media (hover: hover) {
+  .header-close:hover {
+    opacity: 1;
+    background: rgba(255, 255, 255, 0.16);
+  }
+}
+
+.header-close:active {
   opacity: 1;
   background: rgba(255, 255, 255, 0.16);
+}
+
+.header-close svg {
+  width: var(--pip-icon-close);
+  height: var(--pip-icon-close);
 }
 
 /* ---------- banner de reconexão ---------- */
@@ -160,7 +220,7 @@ button {
 .conn-banner {
   padding: 5px 12px;
   text-align: center;
-  font-size: 12px;
+  font-size: var(--pip-fs-banner);
   background: var(--pip-banner-bg);
   color: var(--pip-banner-text);
   flex-shrink: 0;
@@ -171,7 +231,8 @@ button {
 .messages {
   flex: 1;
   overflow-y: auto;
-  padding: 14px 16px 8px;
+  padding: var(--pip-list-pad-top) calc(16px + var(--pip-safe-right)) 8px
+    calc(16px + var(--pip-safe-left));
   background: var(--pip-list-bg);
   overflow-anchor: none;
   overscroll-behavior: contain;
@@ -187,8 +248,10 @@ button {
   border-radius: 6px;
 }
 
-.messages::-webkit-scrollbar-thumb:hover {
-  background: var(--pip-text-soft);
+@media (hover: hover) {
+  .messages::-webkit-scrollbar-thumb:hover {
+    background: var(--pip-text-soft);
+  }
 }
 
 .messages {
@@ -198,7 +261,7 @@ button {
 
 .day-label {
   text-align: center;
-  font-size: 11px;
+  font-size: var(--pip-fs-meta);
   font-weight: 500;
   letter-spacing: 0.02em;
   color: var(--pip-text-soft);
@@ -211,7 +274,7 @@ button {
 
 .older-loading {
   text-align: center;
-  font-size: 11px;
+  font-size: var(--pip-fs-meta);
   color: var(--pip-text-soft);
   padding: 4px 0 8px;
 }
@@ -226,7 +289,7 @@ button {
 
 .msg-row--theirs {
   align-items: flex-start;
-  padding-left: 32px;
+  padding-left: var(--pip-msg-gutter);
 }
 
 .msg-row--mine {
@@ -239,10 +302,10 @@ button {
 
 .msg-bubble {
   position: relative;
-  max-width: 82%;
-  padding: 9px 13px;
-  border-radius: 16px;
-  font-size: 14px;
+  max-width: var(--pip-bubble-maxw);
+  padding: var(--pip-bubble-pad);
+  border-radius: var(--pip-bubble-radius);
+  font-size: var(--pip-fs-bubble);
   line-height: 1.45;
   overflow-wrap: break-word;
   word-break: break-word;
@@ -269,17 +332,17 @@ button {
 
 .msg-avatar {
   position: absolute;
-  left: -32px;
+  left: calc(-1 * var(--pip-msg-gutter));
   bottom: 0;
-  width: 24px;
-  height: 24px;
+  width: var(--pip-msg-avatar);
+  height: var(--pip-msg-avatar);
   border-radius: 50%;
   background: var(--pip-grad);
   color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
+  font-size: var(--pip-fs-msg-avatar);
   font-weight: 600;
 }
 
@@ -295,13 +358,13 @@ button {
 
 .msg-time {
   margin-top: 3px;
-  font-size: 11px;
+  font-size: var(--pip-fs-meta);
   color: var(--pip-text-soft);
 }
 
 .msg-status {
   margin-top: 3px;
-  font-size: 11px;
+  font-size: var(--pip-fs-meta);
   color: var(--pip-text-soft);
   background: none;
   border: 0;
@@ -313,7 +376,13 @@ button {
   cursor: pointer;
 }
 
-.msg-status--failed:hover {
+@media (hover: hover) {
+  .msg-status--failed:hover {
+    text-decoration: underline;
+  }
+}
+
+.msg-status--failed:active {
   text-decoration: underline;
 }
 
@@ -321,7 +390,7 @@ button {
 
 .msg-bubble--media {
   padding: 4px;
-  border-radius: 14px;
+  border-radius: var(--pip-bubble-media-radius);
 }
 
 .msg-media-link {
@@ -331,24 +400,24 @@ button {
 
 .msg-image {
   display: block;
-  max-width: 240px;
-  max-height: 240px;
+  max-width: var(--pip-img-max);
+  max-height: var(--pip-img-max);
   min-width: 84px;
   min-height: 60px;
-  border-radius: 11px;
+  border-radius: var(--pip-media-radius);
   object-fit: cover;
   background: rgba(0, 0, 0, 0.06);
 }
 
 .msg-video {
   display: block;
-  max-width: 260px;
-  border-radius: 11px;
+  max-width: var(--pip-video-max);
+  border-radius: var(--pip-media-radius);
 }
 
 .msg-audio {
   display: block;
-  width: 240px;
+  width: var(--pip-audio-w);
   max-width: 100%;
   margin: 2px;
 }
@@ -358,7 +427,7 @@ button {
   align-items: center;
   gap: 10px;
   padding: 9px 12px;
-  min-width: 180px;
+  min-width: var(--pip-doc-min-w);
   text-decoration: none;
   color: inherit;
 }
@@ -369,17 +438,22 @@ button {
   flex-shrink: 0;
 }
 
+.msg-doc-icon svg {
+  width: var(--pip-icon-doc);
+  height: var(--pip-icon-doc);
+}
+
 .msg-doc-name {
   flex: 1;
-  font-size: 13.5px;
-  max-width: 170px;
+  font-size: var(--pip-fs-small);
+  max-width: var(--pip-doc-name-max);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .msg-doc-open {
-  font-size: 12px;
+  font-size: var(--pip-fs-doc-open);
   font-weight: 600;
   text-decoration: underline;
   text-underline-offset: 2px;
@@ -414,8 +488,8 @@ button {
 }
 
 .skeleton-bubble {
-  height: 38px;
-  border-radius: 16px;
+  height: var(--pip-skeleton-h);
+  border-radius: var(--pip-bubble-radius);
   background: var(--pip-bubble-company);
   animation: pip-pulse 1.2s ease-in-out infinite;
 }
@@ -437,7 +511,7 @@ button {
   gap: 10px;
   padding: 32px 16px;
   color: var(--pip-text);
-  font-size: 13.5px;
+  font-size: var(--pip-fs-small);
   text-align: center;
 }
 
@@ -449,14 +523,21 @@ button {
   border: 1px solid var(--pip-border);
   background: var(--pip-surface);
   color: var(--pip-text-strong);
-  font-size: 13px;
+  font-size: var(--pip-fs-btn);
   font-weight: 500;
   padding: 7px 14px;
   border-radius: 8px;
   cursor: pointer;
 }
 
-.list-error button:hover {
+@media (hover: hover) {
+  .list-error button:hover {
+    border-color: var(--pip-primary);
+    color: var(--pip-primary-dark);
+  }
+}
+
+.list-error button:active {
   border-color: var(--pip-primary);
   color: var(--pip-primary-dark);
 }
@@ -479,7 +560,7 @@ button {
   border-radius: 8px;
   background: rgba(220, 53, 69, 0.08);
   color: var(--pip-negative);
-  font-size: 12.5px;
+  font-size: var(--pip-fs-composer-error);
 }
 
 .composer-error button {
@@ -495,16 +576,17 @@ button {
 .composer-bar {
   display: flex;
   align-items: flex-end;
-  gap: 6px;
-  padding: 10px 12px;
+  gap: var(--pip-composer-gap);
+  padding: var(--pip-composer-pad-y) calc(12px + var(--pip-safe-right))
+    calc(var(--pip-composer-pad-y) + var(--pip-safe-bottom)) calc(12px + var(--pip-safe-left));
 }
 
 .composer-attach {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
+  width: var(--pip-ctl);
+  height: var(--pip-ctl);
   border: 0;
   border-radius: 8px;
   background: none;
@@ -513,7 +595,19 @@ button {
   flex-shrink: 0;
 }
 
-.composer-attach:hover {
+.composer-attach svg {
+  width: var(--pip-icon-attach);
+  height: var(--pip-icon-attach);
+}
+
+@media (hover: hover) {
+  .composer-attach:hover {
+    background: var(--pip-bubble-company);
+    color: var(--pip-text);
+  }
+}
+
+.composer-attach:active {
   background: var(--pip-bubble-company);
   color: var(--pip-text);
 }
@@ -521,14 +615,17 @@ button {
 .composer-input {
   flex: 1;
   min-height: 22px;
-  max-height: 100px;
+  max-height: var(--pip-input-maxh); /* o autosize do Composer lê este cap */
   resize: none;
   border: 0;
   outline: none;
   background: none;
   color: var(--pip-text-strong);
-  font: 400 14px/1.5 var(--pip-font);
-  padding: 6px 2px;
+  font-weight: 400;
+  font-size: var(--pip-fs-input);
+  line-height: 1.5;
+  font-family: var(--pip-font);
+  padding: var(--pip-input-pad-y) 2px;
   caret-color: var(--pip-primary);
 }
 
@@ -540,8 +637,8 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
+  width: var(--pip-ctl);
+  height: var(--pip-ctl);
   border: 0;
   border-radius: 50%;
   background: var(--pip-primary);
@@ -552,11 +649,19 @@ button {
 }
 
 .composer-send svg {
+  width: var(--pip-icon-send);
+  height: var(--pip-icon-send);
   margin-left: 2px;
 }
 
-.composer-send:hover:not(:disabled) {
-  transform: scale(1.06);
+@media (hover: hover) {
+  .composer-send:hover:not(:disabled) {
+    transform: scale(1.06);
+  }
+}
+
+.composer-send:active:not(:disabled) {
+  transform: scale(0.94);
 }
 
 .composer-send:disabled {
@@ -580,13 +685,40 @@ button {
   text-decoration: none;
 }
 
-.footer a:hover {
-  color: var(--pip-text);
+@media (hover: hover) {
+  .footer a:hover {
+    color: var(--pip-text);
+  }
 }
 
 .footer strong {
   font-weight: 600;
   color: var(--pip-primary-dark);
+}
+
+/* ---------- toque (todos os modos) ---------- */
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button,
+a,
+textarea {
+  touch-action: manipulation;
+}
+
+/* Chrome do painel não é selecionável; texto de balão continua (long-press). */
+.header,
+.msg-avatar,
+.msg-time,
+.msg-status,
+.day-label,
+.footer,
+.composer-attach,
+.composer-send {
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 /* ---------- foco / animações ---------- */
@@ -625,7 +757,91 @@ a:focus-visible {
   .composer-send {
     transition: none;
   }
-  .composer-send:hover:not(:disabled) {
+  .composer-send:hover:not(:disabled),
+  .composer-send:active:not(:disabled) {
     transform: none;
   }
+}
+
+/* ---------- densidade mobile ---------- */
+/* Gatilho: data-density="mobile" no <html> do iframe, setado pelo painel
+   quando o canal é tela cheia (app) OU o dispositivo tem ponteiro grosso
+   (celular/tablet — media query de largura não serve: o painel flutuante
+   desktop tem 400px e casaria junto). Só valores de token + o que não existe
+   no flutuante. Alvos de toque ≥44px (Apple HIG); leitura/input 16px — input
+   menor que 16px dispara auto-zoom no foco no iOS. */
+
+:root[data-density='mobile'] {
+  --pip-fs-title: 17px;
+  --pip-fs-avatar: 18px;
+  --pip-fs-bubble: 16px;
+  --pip-fs-input: 16px;
+  --pip-fs-meta: 12px;
+  --pip-fs-msg-avatar: 12px;
+  --pip-fs-small: 15px;
+  --pip-fs-btn: 15px;
+  --pip-fs-banner: 13px;
+  --pip-fs-doc-open: 13px;
+  --pip-fs-composer-error: 14px;
+  --pip-ctl: 44px;
+  --pip-close: 44px;
+  --pip-icon-attach: 23px;
+  --pip-icon-send: 21px;
+  --pip-icon-doc: 24px;
+  --pip-icon-close: 24px;
+  --pip-avatar: 42px; /* 44 estouraria o header de 64px (12 + 42 + 12 = 66) */
+  --pip-msg-avatar: 28px;
+  --pip-msg-gutter: 36px;
+  --pip-bubble-maxw: 85%;
+  --pip-bubble-pad: 10px 14px;
+  --pip-bubble-radius: 18px;
+  --pip-bubble-media-radius: 16px;
+  --pip-media-radius: 12px;
+  --pip-img-max: min(280px, 70vw);
+  --pip-video-max: min(320px, 75vw);
+  --pip-audio-w: 280px;
+  --pip-doc-min-w: 200px;
+  --pip-doc-name-max: 200px;
+  --pip-list-pad-top: 16px;
+  --pip-input-pad-y: 10px; /* 24px de linha + 20 = 44px, altura dos botões */
+  --pip-input-maxh: 140px; /* ~5 linhas de 16px/1.5 + padding */
+  --pip-composer-pad-y: 12px;
+  --pip-composer-gap: 8px;
+  --pip-skeleton-h: 44px;
+  --pip-safe-top: env(safe-area-inset-top, 0px);
+  --pip-safe-right: env(safe-area-inset-right, 0px);
+  --pip-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --pip-safe-left: env(safe-area-inset-left, 0px);
+}
+
+/* Overscroll do documento (pull-to-refresh/rubber-band) fora da lista. */
+:root[data-density='mobile'],
+:root[data-density='mobile'] body {
+  overscroll-behavior: none;
+}
+
+/* Scrollbar custom de 6px vira ruído no celular — fica o overlay nativo. */
+:root[data-density='mobile'] .messages {
+  scrollbar-width: none;
+}
+
+:root[data-density='mobile'] .messages::-webkit-scrollbar {
+  display: none;
+}
+
+:root[data-density='mobile'] .header-name-skeleton {
+  height: 16px; /* acompanha o título de 17px */
+}
+
+:root[data-density='mobile'] .list-error button {
+  min-height: 44px;
+  padding: 10px 18px;
+}
+
+:root[data-density='mobile'] .msg-status--failed {
+  padding: 8px 0; /* alvo de toque do "reenviar" sem distorcer a linha */
+}
+
+:root[data-density='mobile'] .fatal {
+  font-size: 16px;
 }

@@ -6,10 +6,19 @@
 export interface FrameController {
   exists(): boolean;
   element(): HTMLIFrameElement | null;
-  create(params: { id: string; eid: string; lastread: string | null }): void;
+  create(params: {
+    id: string;
+    eid: string;
+    lastread: string | null;
+    /** display_mode já conhecido — o painel aplica a densidade antes do 1º paint. */
+    mode?: string | null;
+  }): void;
   setOpen(open: boolean): void;
-  /** Teclado do iOS: espelha o visualViewport no iframe enquanto aberto no mobile. */
-  startViewportTracking(): void;
+  /**
+   * Teclado do iOS: espelha o visualViewport no iframe enquanto aberto no
+   * mobile. `force` (tela cheia) ignora o gate de largura — tablet também.
+   */
+  startViewportTracking(force?: boolean): void;
   stopViewportTracking(): void;
   destroy(): void;
 }
@@ -28,6 +37,7 @@ export function createFrameController(panelBase: string, opts: { title: string }
       let hash =
         '#id=' + encodeURIComponent(params.id) + '&eid=' + encodeURIComponent(params.eid);
       if (params.lastread) hash += '&lastread=' + encodeURIComponent(params.lastread);
+      if (params.mode === 'fullscreen') hash += '&mode=fullscreen';
 
       iframe = document.createElement('iframe');
       iframe.className = 'pipeelo-frame';
@@ -43,10 +53,10 @@ export function createFrameController(panelBase: string, opts: { title: string }
       iframe.setAttribute('aria-hidden', String(!open));
     },
 
-    startViewportTracking() {
+    startViewportTracking(force?: boolean) {
       const vv = window.visualViewport;
       if (!vv || !iframe || stopTracking) return;
-      if (!window.matchMedia('(max-width: 640px)').matches) return;
+      if (!force && !window.matchMedia('(max-width: 640px)').matches) return;
 
       let raf = 0;
       const apply = () => {

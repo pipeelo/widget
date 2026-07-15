@@ -51,8 +51,12 @@ export function Composer(props: {
   useEffect(() => {
     const el = areaRef.current;
     if (!el) return;
+    // O cap vem do CSS (--pip-input-maxh via max-height) — muda com a
+    // densidade mobile; o getComputedStyle é barato perto do reflow que o
+    // scrollHeight abaixo já força.
+    const cap = parseFloat(getComputedStyle(el).maxHeight) || 100;
     el.style.height = 'auto';
-    el.style.height = Math.min(el.scrollHeight, 100) + 'px';
+    el.style.height = Math.min(el.scrollHeight, cap) + 'px';
   }, [text]);
 
   useEffect(() => () => window.clearTimeout(errorTimerRef.current), []);

@@ -23,6 +23,37 @@ Pipeelo('close');  // fecha
 Pipeelo('toggle'); // alterna
 ```
 
+## Embed em app (tela cheia)
+
+Canal com `display_mode: 'fullscreen'` na config: o chat **é** a página — o loader abre o painel no boot ocupando a viewport inteira, sem bolha, sem teaser e sem fechar (`Pipeelo('close')` vira no-op). Feito para WebView de app nativo (chat in-app). O painel aplica a **densidade mobile** (texto 16px, alvos de toque de 44px, safe areas de notch/home indicator) — a mesma usada em qualquer dispositivo de toque.
+
+Página wrapper mínima que o app carrega na WebView:
+
+```html
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" />
+    <title>Chat</title>
+  </head>
+  <body>
+    <script>
+      (function (w, d) {
+        w.Pipeelo = w.Pipeelo || function () { (w.Pipeelo.q = w.Pipeelo.q || []).push(arguments) };
+        var s = d.createElement('script'); s.async = true;
+        s.src = 'https://widget.pipeelo.com/v1/loader.js?id={identifier}';
+        d.head.appendChild(s);
+      })(window, document);
+    </script>
+  </body>
+</html>
+```
+
+- **A `<meta viewport>` acima é obrigatória**: sem ela o iOS usa o viewport legado de 980px e tudo renderiza ~2.6× menor. O loader injeta essa meta como rede de segurança quando não existe nenhuma (nunca sobrescreve a do autor). `viewport-fit=cover` habilita as safe areas (`env(safe-area-inset-*)`); `interactive-widget=resizes-content` faz o teclado do Android redimensionar o layout (Chromium ≥ 108; o iOS ignora — lá o loader compensa via `visualViewport`).
+- **iOS (WKWebView)**: `webView.scrollView.contentInsetAdjustmentBehavior = .never` (senão o sistema soma os insets duas vezes) e, para sensação nativa, `webView.scrollView.bounces = false`.
+- **Android (WebView)**: activity edge-to-edge (padrão com target SDK 35+) e `android:windowSoftInputMode="adjustResize"` para o teclado.
+
 ## Anatomia
 
 | Peça | Onde roda | Código | Artefato |
@@ -38,9 +69,9 @@ Comportamentos-chave:
 - **Nada é criado no servidor até a primeira mensagem** — o token só é cunhado no primeiro open.
 - **Visitante recorrente** (token existente): o iframe nasce escondido no load para manter o socket vivo — badge funciona sem abrir o painel.
 - **Não-lidas**: marco `lastread` persistido no host via loader; painel conta `from === 'company'` mais novas que o marco.
-- **Config do canal** (`GET /v1/website-channel/config/{id}`): `name`, `widget_color` (accent com auto-contraste de texto por luminância), `welcome_message` (primeiro balão quando não há histórico) e — **leitor tolerante, campos em rollout no backend** — `theme` (`light` | `dark` | `auto`; ausente/null → light) e `message_preview` (string; non-null → cartão teaser proativo ao lado da bolha fechada, dispensável e persistido; respostas ao vivo geram só badge).
+- **Config do canal** (`GET /v1/website-channel/config/{id}`): `name`, `widget_color` (accent com auto-contraste de texto por luminância), `welcome_message` (primeiro balão quando não há histórico) e — **leitor tolerante, campos em rollout no backend** — `theme` (`light` | `dark` | `auto`; ausente/null → light), `message_preview` (string; non-null → cartão teaser proativo ao lado da bolha fechada, dispensável e persistido; respostas ao vivo geram só badge) e `display_mode` (`floating` | `fullscreen`; ausente → floating — ver "Embed em app").
 - **Storage bloqueado** (Safari privado antigo, "block all cookies"): degrada para memória — widget funcional, sessão com vida útil da página.
-- **Mobile** (≤ 640 px): painel fullscreen, teclado iOS compensado via `visualViewport`, scroll do host travado enquanto aberto.
+- **Mobile** (≤ 640 px): painel fullscreen, teclado iOS compensado via `visualViewport`, scroll do host travado enquanto aberto. Em dispositivo de toque (e sempre na tela cheia) o painel aplica a **densidade mobile** — `data-density="mobile"` no `<html>` do iframe, tokens de tamanho no `styles.css`: texto/input 16px, alvos de 44px, safe areas.
 
 ## Rodando
 
@@ -50,7 +81,7 @@ yarn dev      # dev server
 ```
 
 - Demo dev (loader TS no ar + página host "hostil"): `http://localhost:5173/v1/dev/host.html?id={identifier}`
-- Painel direto (standalone): `http://localhost:5173/v1/#id={identifier}&eid={uuid-qualquer}`
+- Painel direto (standalone): `http://localhost:5173/v1/#id={identifier}&eid={uuid-qualquer}` — acrescente `&mode=fullscreen` para testar a UI de tela cheia/densidade mobile sem app
 
 ```bash
 yarn build    # tsc + painel + loader IIFE + verificação de orçamento/artefato

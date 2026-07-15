@@ -16,6 +16,8 @@ export interface PanelParams {
   id: string;
   eid: string;
   lastread: string | null;
+  /** display_mode conhecido pelo loader na criação do iframe (hint pré-config). */
+  mode: string | null;
 }
 
 export function App({ params }: { params: PanelParams }) {
@@ -83,8 +85,38 @@ export function App({ params }: { params: PanelParams }) {
     style.setProperty('--pip-on-primary', onAccent);
   }, [accent, onAccent]);
 
-  // Modo tela cheia (config do canal): sem chevron, sem Escape-fecha, sem rodapé.
-  const fullscreen = normalizeDisplayMode(config?.display_mode) === 'fullscreen';
+  // Modo tela cheia: sem chevron, sem Escape-fecha, sem rodapé. A config do
+  // canal decide; antes dela chegar vale o hint do fragment (evita chevron e
+  // rodapé piscando no boot em tela cheia).
+  const fullscreen = config
+    ? normalizeDisplayMode(config.display_mode) === 'fullscreen'
+    : params.mode === 'fullscreen';
+
+  // Densidade mobile (escala de toque do styles.css): tela cheia OU ponteiro
+  // grosso. O main.tsx já seta antes do 1º paint; aqui reconcilia quando a
+  // config chega e acompanha mudança de ponteiro (tablet conversível).
+  useEffect(() => {
+    const apply = (coarse: boolean) => {
+      if (fullscreen || coarse) {
+        document.documentElement.setAttribute('data-density', 'mobile');
+      } else {
+        document.documentElement.removeAttribute('data-density');
+      }
+    };
+    if (typeof window.matchMedia !== 'function') {
+      apply(false);
+      return;
+    }
+    const query = window.matchMedia('(pointer: coarse)');
+    const onChange = (event: MediaQueryListEvent) => apply(event.matches);
+    apply(query.matches);
+    if (typeof query.addEventListener === 'function') {
+      query.addEventListener('change', onChange);
+      return () => query.removeEventListener('change', onChange);
+    }
+    query.addListener(onChange); // Safari < 14
+    return () => query.removeListener(onChange);
+  }, [fullscreen]);
 
   useEffect(() => {
     if (fullscreen) return;
