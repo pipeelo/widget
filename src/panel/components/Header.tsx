@@ -1,3 +1,4 @@
+import { useRef } from 'preact/hooks';
 import { STR } from '../lib/strings';
 
 // Dois ícones no mesmo botão, alternados por CSS conforme a densidade: no
@@ -51,6 +52,21 @@ export function Header(props: {
   onClose(): void;
 }) {
   const initial = (props.name.trim().charAt(0) || 'P').toUpperCase();
+
+  // Fecha no pointerdown, não no click: com o teclado aberto, o click perde a
+  // corrida — o blur do textarea dispara o espelhamento do viewport, o header
+  // se move entre o touchstart e o touchend e o tap "erra" o X. O
+  // preventDefault segura o foco no textarea (nenhum relayout no meio do
+  // gesto); o teclado só cai quando o painel some. O onClick fica de fallback
+  // para teclado físico/leitor de tela, com guarda contra disparo duplo.
+  const closedAtRef = useRef(0);
+  const closeFromPointer = (event: PointerEvent) => {
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+    event.preventDefault();
+    closedAtRef.current = Date.now();
+    props.onClose();
+  };
+
   return (
     <header class={'header' + (props.brandGradient ? ' header--brand' : '')}>
       <span class="header-avatar" aria-hidden="true">
@@ -64,7 +80,15 @@ export function Header(props: {
         )}
       </div>
       {props.showClose && (
-        <button type="button" class="header-close" aria-label={STR.close} onClick={props.onClose}>
+        <button
+          type="button"
+          class="header-close"
+          aria-label={STR.close}
+          onPointerDown={closeFromPointer}
+          onClick={() => {
+            if (Date.now() - closedAtRef.current > 500) props.onClose();
+          }}
+        >
           <ChevronIcon />
           <CloseIcon />
         </button>

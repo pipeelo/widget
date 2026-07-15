@@ -75,6 +75,11 @@ export function Composer(props: {
     errorTimerRef.current = window.setTimeout(() => setFileError(null), 5000);
   };
 
+  // Botões do composer não roubam o foco do textarea (preventDefault no
+  // pointerdown): sem blur, o teclado não fecha nem move o layout no meio do
+  // tap — o click chega onde o dedo apontou e o teclado segue de pé ao enviar.
+  const keepFocus = (event: Event) => event.preventDefault();
+
   const onFilePicked = (event: Event) => {
     const input = event.currentTarget as HTMLInputElement;
     const file = input.files && input.files[0];
@@ -103,6 +108,7 @@ export function Composer(props: {
           type="button"
           class="composer-attach"
           aria-label={STR.attach}
+          onPointerDown={keepFocus}
           onClick={() => fileRef.current?.click()}
         >
           <PaperclipIcon />
@@ -113,6 +119,7 @@ export function Composer(props: {
           rows={1}
           placeholder={STR.inputPlaceholder}
           aria-label={STR.inputPlaceholder}
+          enterkeyhint="send"
           value={text}
           onInput={(event) => setText(event.currentTarget.value)}
           onKeyDown={(event) => {
@@ -127,6 +134,7 @@ export function Composer(props: {
           class="composer-send"
           aria-label={STR.send}
           disabled={!text.trim()}
+          onPointerDown={keepFocus}
           onClick={submit}
         >
           <SendIcon />

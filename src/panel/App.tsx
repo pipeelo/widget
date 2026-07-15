@@ -32,7 +32,13 @@ export function App({ params }: { params: PanelParams }) {
     initPanelBridge((isOpen) => {
       setOpen(isOpen);
       chat.notifyVisibility(isOpen);
-      if (isOpen) setFocusToken((t) => t + 1);
+      if (isOpen) {
+        setFocusToken((t) => t + 1);
+      } else if (document.activeElement instanceof HTMLElement) {
+        // Escondido com o composer focado: sem blur, o teclado do iOS fica
+        // de pé sobre o site com o chat já fechado.
+        document.activeElement.blur();
+      }
     });
     if (!isEmbedded()) chat.notifyVisibility(true);
     // chat.notifyVisibility é estável (useCallback sem deps)

@@ -17,7 +17,11 @@ export interface Launcher {
   setAppearance(background: string, foreground: string, useBrandGradient: boolean): void;
 }
 
-export function createLauncher(handlers: { onToggle(): void }): Launcher {
+export function createLauncher(handlers: {
+  onToggle(): void;
+  /** Intenção de abrir (hover/toque na bolha) — chega antes do click. */
+  onIntent?(): void;
+}): Launcher {
   const button = document.createElement('button');
   button.type = 'button';
   button.className = 'pipeelo-launcher';
@@ -47,6 +51,13 @@ export function createLauncher(handlers: { onToggle(): void }): Launcher {
   button.setAttribute('aria-expanded', 'false');
   refreshLabel();
   button.addEventListener('click', () => handlers.onToggle());
+  if (handlers.onIntent) {
+    const intent = () => handlers.onIntent!();
+    // mouseenter aquece no hover (desktop); pointerdown chega ~100ms antes
+    // do click no toque. Idempotente do outro lado.
+    button.addEventListener('mouseenter', intent, { passive: true });
+    button.addEventListener('pointerdown', intent, { passive: true });
+  }
 
   return {
     mount() {

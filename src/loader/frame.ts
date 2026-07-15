@@ -3,6 +3,8 @@
 // (opacity/visibility), nunca display:none nem remoção — o painel continua
 // rodando com o socket aberto.
 
+import { MOBILE_MEDIA } from './styles';
+
 export interface FrameController {
   exists(): boolean;
   element(): HTMLIFrameElement | null;
@@ -56,50 +58,70 @@ export function createFrameController(panelBase: string, opts: { title: string }
     startViewportTracking(force?: boolean) {
       const vv = window.visualViewport;
       if (!vv || !iframe || stopTracking) return;
-      if (!force && !window.matchMedia('(max-width: 640px)').matches) return;
+      if (!force && !window.matchMedia(MOBILE_MEDIA).matches) return;
 
-      // A transição de transform do CSS (entrada/saída do painel) faria o
-      // espelhamento do teclado "correr atrás" de cada evento com 250ms de
-      // easing — sensação de travado, com o site aparecendo atrás durante a
-      // perseguição. Enquanto o tracking está ativo, só a opacidade
-      // transiciona; stopTracking devolve a folha de estilo.
+      // Enquanto o tracking está ativo, só a opacidade transiciona: a
+      // transição de transform do CSS (entrada/saída) faria o espelhamento
+      // "correr atrás" de cada evento com 250ms de easing, com o site
+      // aparecendo atrás durante a perseguição. stopTracking devolve a folha
+      // de estilo.
       iframe.style.transition = 'opacity .2s ease';
 
-      let raf = 0;
+      // O deslocamento compensa com top/height, NUNCA transform: iframe
+      // transformado tem hit-testing de toque quebrado no iOS (tap cai
+      // deslocado do que o dedo apontou — X que "não fecha", textarea que
+      // não foca de primeira).
+      let lastTop = '';
+      let lastHeight = '';
       const apply = () => {
-        raf = 0;
         if (!iframe) return;
         // Teclado aberto = viewport visual bem menor que a layout (iOS e
         // Android resizes-visual) ou deslocada. Sem teclado, LIMPA os inline
         // e o CSS (height:100%) manda — assim um height antigo nunca fica
-        // preso (evento/rAF engolido em animação nativa do iOS se auto-cura
-        // no próximo evento) e, no Android com resizes-content, o layout já
-        // encolhido não é compensado duas vezes.
+        // preso e, no Android com resizes-content, o layout já encolhido não
+        // é compensado duas vezes.
         const keyboard = window.innerHeight - vv.height > 80 || vv.offsetTop > 1;
-        if (keyboard) {
-          iframe.style.height = vv.height + 'px';
-          iframe.style.transform = 'translateY(' + vv.offsetTop + 'px)';
-        } else {
-          iframe.style.height = '';
-          iframe.style.transform = '';
-        }
+        const top = keyboard ? vv.offsetTop + 'px' : '';
+        const height = keyboard ? vv.height + 'px' : '';
+        if (top === lastTop && height === lastHeight) return;
+        lastTop = top;
+        lastHeight = height;
+        iframe.style.top = top;
+        iframe.style.height = height;
+        // top+height mandam; bottom:auto evita o layout sobre-restringido
+        iframe.style.bottom = keyboard ? 'auto' : '';
       };
-      const onChange = () => {
-        // cancel+reschedule: um rAF perdido não pode travar o gate p/ sempre.
-        if (raf) cancelAnimationFrame(raf);
-        raf = requestAnimationFrame(apply);
+
+      // O iOS anima o teclado nativamente e avisa pouco (às vezes um único
+      // resize já no fim, com rAF estrangulado durante a animação): cada
+      // evento aplica na hora E abre uma janela de settle em que o apply
+      // roda por frame — acompanha a animação sem depender de evento e
+      // garante que o estado final nunca fica stale.
+      let raf = 0;
+      let settleUntil = 0;
+      const tick = () => {
+        apply();
+        raf = performance.now() < settleUntil ? requestAnimationFrame(tick) : 0;
       };
-      vv.addEventListener('resize', onChange);
-      vv.addEventListener('scroll', onChange);
-      onChange();
+      const kick = () => {
+        settleUntil = performance.now() + 600;
+        apply();
+        if (!raf) raf = requestAnimationFrame(tick);
+      };
+      vv.addEventListener('resize', kick);
+      vv.addEventListener('scroll', kick);
+      window.addEventListener('resize', kick); // rotação; resizes-content
+      kick();
 
       stopTracking = () => {
-        vv.removeEventListener('resize', onChange);
-        vv.removeEventListener('scroll', onChange);
+        vv.removeEventListener('resize', kick);
+        vv.removeEventListener('scroll', kick);
+        window.removeEventListener('resize', kick);
         if (raf) cancelAnimationFrame(raf);
         if (iframe) {
+          iframe.style.top = '';
           iframe.style.height = '';
-          iframe.style.transform = '';
+          iframe.style.bottom = '';
           iframe.style.transition = '';
         }
       };

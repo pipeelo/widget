@@ -10,7 +10,7 @@ import { API_URL } from './env';
 import { createFrameController } from './frame';
 import { createLauncher } from './launcher';
 import { createSession } from './session';
-import { injectStyles } from './styles';
+import { injectStyles, MOBILE_MEDIA } from './styles';
 import { createTeaser } from './teaser';
 
 type PipeeloFn = ((...args: unknown[]) => void) & { q?: IArguments[]; loaded?: boolean };
@@ -75,8 +75,34 @@ function start(
 
   injectStyles();
 
+  // Trava de scroll do host enquanto o chat cobre a tela (regras no CSS da
+  // classe pipeelo-lock). Guarda o scroll e o top inline do body do host para
+  // devolver exatamente como estavam no unlock.
+  let lockedScrollY = 0;
+  let lockedBodyTop: string | null = null;
+  function lockScroll(): void {
+    if (lockedBodyTop !== null) return;
+    lockedScrollY = window.scrollY || 0;
+    lockedBodyTop = document.body.style.top;
+    document.body.style.top = -lockedScrollY + 'px';
+    document.documentElement.classList.add('pipeelo-lock');
+  }
+  function unlockScroll(): void {
+    if (lockedBodyTop === null) return;
+    document.documentElement.classList.remove('pipeelo-lock');
+    document.body.style.top = lockedBodyTop;
+    lockedBodyTop = null;
+    window.scrollTo(0, lockedScrollY);
+  }
+
   const launcher = createLauncher({
     onToggle: () => (open ? doClose() : doOpen()),
+    // Aquecimento no primeiro toque/hover: o painel (bundle + config +
+    // histórico) boota entre a intenção e o click — o chat abre já utilizável,
+    // sem "delay para escrever" no 1º open.
+    onIntent: () => {
+      if (!disabled) ensureFrame();
+    },
   });
   const frame = createFrameController(panelBase, { title: 'Chat — Pipeelo' });
   const teaser = createTeaser({
@@ -112,6 +138,7 @@ function start(
     open = true;
     teaser.hide(true);
     document.documentElement.classList.add('pipeelo-open');
+    if (fullscreen || window.matchMedia(MOBILE_MEDIA).matches) lockScroll();
     frame.setOpen(true);
     launcher.setOpen(true);
     bridge.send({ __pipeelo: true, type: 'visibility', open: true });
@@ -125,6 +152,7 @@ function start(
     frame.setOpen(false);
     launcher.setOpen(false);
     document.documentElement.classList.remove('pipeelo-open');
+    unlockScroll();
     bridge.send({ __pipeelo: true, type: 'visibility', open: false });
   }
 
