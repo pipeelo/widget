@@ -215,6 +215,11 @@ button {
   height: var(--pip-icon-close);
 }
 
+/* Só o chevron por padrão (desktop flutuante). O X entra na densidade mobile. */
+.header-close-x {
+  display: none;
+}
+
 /* ---------- banner de reconexão ---------- */
 
 .conn-banner {
@@ -831,6 +836,21 @@ a:focus-visible {
 
 :root[data-density='mobile'] .header-name-skeleton {
   height: 16px; /* acompanha o título de 17px */
+}
+
+/* Mobile flutuante: painel cobre a tela, sem bolinha à vista — X (fechar e
+   voltar ao site) no lugar do chevron de minimizar, e mais visível. No
+   fullscreen o botão nem renderiza (showClose=false), então nunca aparece. */
+:root[data-density='mobile'] .header-close {
+  opacity: 1;
+}
+
+:root[data-density='mobile'] .header-close-chevron {
+  display: none;
+}
+
+:root[data-density='mobile'] .header-close-x {
+  display: block;
 }
 
 :root[data-density='mobile'] .list-error button {
