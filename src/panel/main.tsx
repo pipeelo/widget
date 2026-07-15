@@ -37,4 +37,6 @@ if (root) {
     params ? <App params={params} /> : <div class="fatal">{STR.startError}</div>,
     root
   );
+  // A UI real assumiu — a casca estática de boot do index.html sai de cena.
+  document.getElementById('boot')?.remove();
 }

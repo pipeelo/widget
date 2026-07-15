@@ -17,6 +17,12 @@ export interface FrameController {
   }): void;
   setOpen(open: boolean): void;
   /**
+   * Fundo opaco do iframe (o painel demora a pintar no boot frio — sem isso
+   * o open não muda nada na tela e parece que o toque falhou). Tema da
+   * config decide claro/escuro.
+   */
+  setBackground(color: string): void;
+  /**
    * Teclado do iOS: espelha o visualViewport no iframe enquanto aberto no
    * mobile. `force` (tela cheia) ignora o gate de largura — tablet também.
    */
@@ -28,6 +34,7 @@ export interface FrameController {
 export function createFrameController(panelBase: string, opts: { title: string }): FrameController {
   let iframe: HTMLIFrameElement | null = null;
   let stopTracking: (() => void) | null = null;
+  let background: string | null = null; // config pode chegar antes do create
 
   return {
     exists: () => iframe !== null,
@@ -45,6 +52,7 @@ export function createFrameController(panelBase: string, opts: { title: string }
       iframe.className = 'pipeelo-frame';
       iframe.title = opts.title;
       iframe.setAttribute('aria-hidden', 'true');
+      if (background) iframe.style.background = background;
       iframe.src = panelBase + hash;
       document.body.appendChild(iframe);
     },
@@ -53,6 +61,11 @@ export function createFrameController(panelBase: string, opts: { title: string }
       if (!iframe) return;
       iframe.classList.toggle('pipeelo-on', open);
       iframe.setAttribute('aria-hidden', String(!open));
+    },
+
+    setBackground(color) {
+      background = color;
+      if (iframe) iframe.style.background = color;
     },
 
     startViewportTracking(force?: boolean) {

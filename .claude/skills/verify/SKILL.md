@@ -58,6 +58,12 @@ não existirem mais, reescrever seguindo os passos acima (~150 linhas).
 - Landscape 844×390 → tela cheia + trava (`max-height:500px` na MOBILE_MEDIA).
 - Desktop 1280×800 (mouse, `mobile:false`) → flutuante 400px, SEM trava,
   chevron fecha.
+- **Boot frio com rede lenta** (latência percebida): perfil novo +
+  `localStorage.clear()` + `Network.setCacheDisabled` +
+  `Network.emulateNetworkConditions` (150ms/750kbps). Tap na bolha →
+  `.pipeelo-on` + fundo opaco em <800ms, casca `#boot` visível no
+  `contentDocument` antes do bundle, composer interativo ~1s, `#boot`
+  removido após o render, chunk `socket-*` chegando DEPOIS do composer.
 
 ## Pegadinhas
 

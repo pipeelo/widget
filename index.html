@@ -7,13 +7,70 @@
     <title>Pipeelo Chat</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Fonte fora do caminho crítico: um stylesheet de terceiro no head
+         segura o 1º paint da casca inteira em rede móvel; media=print +
+         onload troca para all sem bloquear (swap já evita FOIT). -->
     <link
       href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap"
       rel="stylesheet"
+      media="print"
+      onload="this.media='all'"
     />
+    <noscript>
+      <link
+        href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap"
+        rel="stylesheet"
+      />
+    </noscript>
+    <!-- Casca de boot: pinta antes do bundle chegar (o main.tsx remove após
+         o 1º render). Sem ela, o 1º open num visitante frio fica em branco
+         até o JS carregar — parece que o toque não funcionou. -->
+    <style>
+      #boot {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        background: #fff;
+      }
+      #boot-head {
+        height: 64px;
+        flex-shrink: 0;
+        background: linear-gradient(135deg, #01d5ac, #00b792);
+      }
+      #boot-body {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        padding: 22px 16px;
+      }
+      #boot-body span {
+        height: 40px;
+        border-radius: 16px;
+        background: #f2f4f7;
+        animation: boot-pulse 1.2s ease-in-out infinite;
+      }
+      @keyframes boot-pulse {
+        0%,
+        100% {
+          opacity: 0.55;
+        }
+        50% {
+          opacity: 1;
+        }
+      }
+    </style>
   </head>
   <body>
     <div id="app"></div>
+    <div id="boot" aria-hidden="true">
+      <div id="boot-head"></div>
+      <div id="boot-body">
+        <span style="width: 62%"></span>
+        <span style="width: 44%; align-self: flex-end; opacity: 0.7"></span>
+        <span style="width: 54%"></span>
+      </div>
+    </div>
     <script type="module" src="/src/panel/main.tsx"></script>
   </body>
 </html>

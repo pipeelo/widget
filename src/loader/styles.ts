@@ -32,7 +32,7 @@ export const LOADER_CSS = `
 .pipeelo-badge{position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#dc3545;color:#fff;font:600 11px/18px system-ui,-apple-system,sans-serif;text-align:center;box-sizing:border-box;box-shadow:0 1px 4px rgba(0,0,0,.25);letter-spacing:normal}
 .pipeelo-badge[hidden]{display:none}
 
-.pipeelo-frame{position:fixed;z-index:${Z - 1};right:20px;bottom:84px;width:400px;max-width:calc(100vw - 40px);height:calc(100vh - 104px);max-height:704px;margin:0;padding:0;border:0;border-radius:16px;box-shadow:0 5px 40px rgba(0,0,0,.16);background:transparent;opacity:0;transform:translateY(12px) scale(.96);transform-origin:bottom right;visibility:hidden;pointer-events:none;transition:opacity .2s ease,transform .25s cubic-bezier(.21,1.02,.55,1.01),visibility 0s linear .25s}
+.pipeelo-frame{position:fixed;z-index:${Z - 1};right:20px;bottom:84px;width:400px;max-width:calc(100vw - 40px);height:calc(100vh - 104px);max-height:704px;margin:0;padding:0;border:0;border-radius:16px;box-shadow:0 5px 40px rgba(0,0,0,.16);background:#fff;opacity:0;transform:translateY(12px) scale(.96);transform-origin:bottom right;visibility:hidden;pointer-events:none;transition:opacity .2s ease,transform .25s cubic-bezier(.21,1.02,.55,1.01),visibility 0s linear .25s}
 @supports (height:100dvh){.pipeelo-frame{height:calc(100dvh - 104px)}}
 .pipeelo-frame.pipeelo-on{opacity:1;transform:none;visibility:visible;pointer-events:auto;transition:opacity .2s ease,transform .25s cubic-bezier(.21,1.02,.55,1.01)}
 

@@ -180,6 +180,9 @@ function start(
 
     const cfg = result.config;
     displayMode = normalizeDisplayMode(cfg.display_mode);
+    // Fundo do iframe casa com o tema antes de o painel pintar (boot frio).
+    const dark = themeIsDark(normalizeTheme(cfg.theme), prefersDarkNow());
+    frame.setBackground(dark ? '#242424' : '#fff');
 
     if (displayMode === 'fullscreen') {
       // Tela cheia: o iframe ocupa a viewport, aberto desde o boot. Sem bolha,
@@ -197,7 +200,6 @@ function start(
 
     const previewText = typeof cfg.message_preview === 'string' ? cfg.message_preview.trim() : '';
     if (previewText && !session.isTeaserDismissed()) {
-      const dark = themeIsDark(normalizeTheme(cfg.theme), prefersDarkNow());
       window.setTimeout(() => {
         if (!open && !disabled) teaser.show(cfg.name || 'Pipeelo', previewText, dark);
       }, 1500);

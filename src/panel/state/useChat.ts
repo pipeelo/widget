@@ -3,7 +3,7 @@ import { uuidV4 } from '../../shared/uuid';
 import { fetchHistory, sendFile, sendText } from '../api/client';
 import type { MediaField } from '../api/types';
 import { postToLoader } from '../bridge';
-import { createSocket } from '../realtime/socket';
+import type { SocketHandle } from '../realtime/socket';
 import {
   chatReducer,
   initialChatState,
@@ -60,30 +60,39 @@ export function useChat(
   }, [refreshHistory]);
 
   useEffect(() => {
-    const socket = createSocket({
-      identifier,
-      externalId,
-      onMessage: (item) => dispatch({ type: 'socket/received', item }),
-      onState: (current, hadConnected) => {
-        if (current === 'connected') {
-          setSocketDown(false);
-          if (hadConnected) {
-            // Reconexão real: o histórico é a fonte de verdade — re-busca a
-            // página recente (debounce 2s, como o dashboard) e mescla.
-            window.clearTimeout(refetchTimerRef.current);
-            refetchTimerRef.current = window.setTimeout(refreshHistory, 2000);
+    // pusher-js é o maior peso do bundle: fica fora do caminho crítico do 1º
+    // paint (chunk próprio, carregado depois) — o composer responde antes. O
+    // histórico chega por fetch de qualquer forma; o socket só cobre o vivo.
+    let socket: SocketHandle | null = null;
+    let cancelled = false;
+    void import('../realtime/socket').then(({ createSocket }) => {
+      if (cancelled) return;
+      socket = createSocket({
+        identifier,
+        externalId,
+        onMessage: (item) => dispatch({ type: 'socket/received', item }),
+        onState: (current, hadConnected) => {
+          if (current === 'connected') {
+            setSocketDown(false);
+            if (hadConnected) {
+              // Reconexão real: o histórico é a fonte de verdade — re-busca a
+              // página recente (debounce 2s, como o dashboard) e mescla.
+              window.clearTimeout(refetchTimerRef.current);
+              refetchTimerRef.current = window.setTimeout(refreshHistory, 2000);
+            }
+          } else if (
+            hadConnected &&
+            (current === 'unavailable' || current === 'failed' || current === 'disconnected')
+          ) {
+            setSocketDown(true);
           }
-        } else if (
-          hadConnected &&
-          (current === 'unavailable' || current === 'failed' || current === 'disconnected')
-        ) {
-          setSocketDown(true);
-        }
-      },
+        },
+      });
     });
     return () => {
+      cancelled = true;
       window.clearTimeout(refetchTimerRef.current);
-      socket.destroy();
+      socket?.destroy();
     };
   }, [identifier, externalId, refreshHistory]);
 
