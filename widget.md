@@ -62,4 +62,4 @@ Rotas públicas, sem autenticação, identificadas pelo id (uuid) do registro do
 ## Em aberto
 
 - Config estendida do widget (pré-chat, aparência além do contrato inicial) — evolui junto com o endpoint de config.
-- Verificação de identidade quando houver visitante logado (HMAC `identifier_hash` do Chatwoot ou JWT com expiração — o modelo atual do Intercom, que tratou o `user_hash` como legado).
+- Verificação de identidade quando houver visitante logado (HMAC `identifier_hash` do Chatwoot ou JWT com expiração — o modelo atual do Intercom, que tratou o `user_hash` como legado). Spec do contrato (site passando dados do cliente via `Pipeelo('setUser', …)`) em [`identidade.md`](./identidade.md).

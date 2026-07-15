@@ -122,5 +122,5 @@ Versionamento: mudança incompatível de contrato = novo caminho (`/v2/`) no loa
 - **iframe, não Shadow DOM** — isolamento de CSS/JS nos dois sentidos em site desconhecido. O launcher/teaser (fora do iframe) usam só `system-ui` e classes `pipeelo-*`; um `!important` agressivo do host ainda pode afetá-los (aceito, como em toda a indústria).
 - `from` do payload não distingue atendente humano de IA (ambos `company`) — o widget também não.
 - 1 conexão Soketi por pageview de visitante recorrente (custo do badge). Se pesar em escala, a alternativa é polling do histórico para o badge.
-- Pré-chat (nome/email antes da primeira mensagem) e verificação de identidade (HMAC/JWT) são evoluções previstas nos docs, fora deste escopo.
+- Pré-chat (nome/email antes da primeira mensagem) e verificação de identidade (HMAC/JWT) são evoluções previstas nos docs, fora deste escopo — o site passar dados do cliente (`Pipeelo('setUser', …)`) está especificado em [`identidade.md`](./identidade.md).
 - O bundle do painel (~32 kB gz) é dominado pelo pusher-js — o `widget.md` prevê trocar por cliente enxuto do protocolo se pesar.
