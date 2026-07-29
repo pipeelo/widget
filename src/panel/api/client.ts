@@ -1,3 +1,4 @@
+import type { WidgetUser } from '../../shared/protocol';
 import { ENV } from '../env';
 import type {
   ConversationsPage,
@@ -96,14 +97,17 @@ async function parseSendResponse(res: Response): Promise<SendOutcome> {
 export async function sendText(
   identifier: string,
   externalId: string,
-  text: string
+  text: string,
+  user: WidgetUser | null
 ): Promise<SendOutcome> {
   const t = withTimeout(20000);
   try {
     const res = await fetch(endpoint('message', identifier), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify({ external_id: externalId, text }),
+      body: JSON.stringify(
+        user ? { external_id: externalId, text, user } : { external_id: externalId, text }
+      ),
       signal: t.signal,
     });
     return await parseSendResponse(res);
@@ -116,11 +120,17 @@ export async function sendFile(
   identifier: string,
   externalId: string,
   field: MediaField,
-  file: File
+  file: File,
+  user: WidgetUser | null
 ): Promise<SendOutcome> {
   const form = new FormData();
   form.append('external_id', externalId);
   form.append(field, file, file.name);
+  if (user) {
+    for (const [key, value] of Object.entries(user)) {
+      if (typeof value === 'string') form.append(`user[${key}]`, value);
+    }
+  }
   // Sem header Content-Type: o browser gera o boundary do multipart.
   // Sem timeout: upload grande legítimo pode demorar.
   const res = await fetch(endpoint('message', identifier), {

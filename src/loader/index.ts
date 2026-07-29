@@ -1,7 +1,8 @@
 // Entry do loader — roda na página host do cliente. NÃO pode ter `export`
 // (o build IIFE criaria um global além de `Pipeelo`) e não pode depender de
-// nada fora de src/shared (orçamento < 6 kB gzip).
+// nada fora de src/shared (orçamento < 6,25 kB gzip).
 import { safeAccentColor, textColorOn } from '../shared/color';
+import type { WidgetUser } from '../shared/protocol';
 import { normalizeTheme, prefersDarkNow, themeIsDark } from '../shared/theme';
 import { normalizeDisplayMode } from '../shared/widget-config';
 import { createBridge } from './bridge';
@@ -48,6 +49,21 @@ function ensureViewportMeta(): void {
   document.head.appendChild(meta);
 }
 
+// Identidade declarada pelo host via setUser: só as 4 chaves conhecidas,
+// string, trim, corte em 255 (limite da API). Objeto que sobrar vazio → null.
+function sanitizeUser(raw: unknown): WidgetUser | null {
+  let user: WidgetUser | null = null;
+  if (raw && typeof raw === 'object') {
+    for (const key of ['name', 'email', 'phone', 'document'] as const) {
+      const value = (raw as Record<string, unknown>)[key];
+      if (typeof value === 'string' && value.trim()) {
+        (user = user || {})[key] = value.trim().slice(0, 255);
+      }
+    }
+  }
+  return user;
+}
+
 // O snippet é async e costuma rodar com o body pronto, mas pode ser colado
 // no <head> de forma síncrona — não dá para assumir document.body.
 function whenBody(fn: () => void): void {
@@ -68,6 +84,9 @@ function start(
   let fullscreen = false;
   let open = false;
   let disabled = false;
+  // Última identidade aceita do setUser — reenviada a cada 'ready' do painel
+  // (um reload do iframe zera o ref de lá).
+  let identity: WidgetUser | null = null;
   // display_mode da config — null até ela chegar. Frame criado no boot
   // (visitante recorrente) fica sem o hint; o painel cobre via pointer
   // coarse e pela própria config.
@@ -112,7 +131,10 @@ function start(
   const bridge = createBridge(() => frame.element(), panelOrigin, {
     // O painel pina o origin do pai a partir desta primeira mensagem — vai
     // incondicionalmente, mesmo com o painel fechado (caso do boot escondido).
-    onReady: () => bridge.send({ __pipeelo: true, type: 'visibility', open }),
+    onReady: () => {
+      bridge.send({ __pipeelo: true, type: 'visibility', open });
+      if (identity) bridge.send({ __pipeelo: true, type: 'identify', user: identity });
+    },
     onClose: () => doClose(),
     onUnread: (count) => launcher.setBadge(count),
     onRead: (at) => session.setLastReadAt(at),
@@ -206,22 +228,30 @@ function start(
     }
   });
 
-  function dispatch(command: unknown): void {
+  function dispatch(command: unknown, payload?: unknown): void {
     if (disabled) return;
     if (command === 'open') doOpen();
     else if (command === 'close') doClose();
     else if (command === 'toggle') {
       if (open) doClose();
       else doOpen();
+    } else if (command === 'setUser') {
+      // setUser(null) limpa (logout); payload inválido/vazio não apaga a
+      // identidade anterior. bridge.send enfileira até o painel estar pronto.
+      const user = sanitizeUser(payload);
+      if (user || payload == null) {
+        identity = user;
+        bridge.send({ __pipeelo: true, type: 'identify', user });
+      }
     } else warn('comando desconhecido: ' + String(command));
   }
 
   // Substitui o stub do snippet pelo dispatcher e drena a fila acumulada.
   const pending = w.Pipeelo?.q ?? [];
-  const api = ((...args: unknown[]) => dispatch(args[0])) as PipeeloFn;
+  const api = ((...args: unknown[]) => dispatch(args[0], args[1])) as PipeeloFn;
   api.loaded = true;
   w.Pipeelo = api;
-  for (const args of pending) dispatch(args[0]);
+  for (const args of pending) dispatch(args[0], args[1]);
 }
 
 (function boot() {

@@ -51,9 +51,9 @@ export function App({ params }: { params: PanelParams }) {
         // de pé sobre o site com o chat já fechado.
         document.activeElement.blur();
       }
-    });
+    }, chat.setIdentity);
     if (!isEmbedded()) chat.notifyVisibility(true);
-    // chat.notifyVisibility é estável (useCallback sem deps)
+    // chat.notifyVisibility e chat.setIdentity são estáveis (useCallback sem deps)
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const landedRef = useRef(false);

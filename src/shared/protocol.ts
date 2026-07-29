@@ -1,7 +1,16 @@
 // Contrato postMessage entre o loader (página host) e o painel (iframe).
 // Fonte única: os dois lados importam daqui.
 
-export type LoaderToPanel = { __pipeelo: true; type: 'visibility'; open: boolean };
+export type WidgetUser = {
+  name?: string;
+  email?: string;
+  phone?: string;
+  document?: string;
+};
+
+export type LoaderToPanel =
+  | { __pipeelo: true; type: 'visibility'; open: boolean }
+  | { __pipeelo: true; type: 'identify'; user: WidgetUser | null };
 
 export type PanelToLoader =
   | { __pipeelo: true; type: 'ready' }

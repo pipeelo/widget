@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from 'preact/hooks';
+import type { WidgetUser } from '../../shared/protocol';
 import { uuidV4 } from '../../shared/uuid';
 import { fetchHistory, sendFile, sendText } from '../api/client';
 import type { ApiMessage, Conversation, MediaField, SendOutcome } from '../api/types';
@@ -29,6 +30,8 @@ export interface ChatController {
   refreshHistory(): void;
   /** Chamado pela ponte quando o loader abre/fecha o painel. */
   notifyVisibility(open: boolean): void;
+  /** Identidade declarada pelo host (setUser) — anexada a todo envio. */
+  setIdentity(user: WidgetUser | null): void;
 }
 
 export function useChat(
@@ -56,6 +59,8 @@ export function useChat(
   const historyRequestRef = useRef(0);
   const staleTimerRef = useRef<number | undefined>(undefined);
   const refetchTimerRef = useRef<number | undefined>(undefined);
+
+  const identityRef = useRef<WidgetUser | null>(null);
 
   const lastReadRef = useRef<number>(lastReadParam ? Date.parse(lastReadParam) || 0 : 0);
   const unreadIdsRef = useRef<Set<string>>(new Set());
@@ -238,6 +243,10 @@ export function useChat(
     setSyncTick((t) => t + 1);
   }, []);
 
+  const setIdentity = useCallback((user: WidgetUser | null) => {
+    identityRef.current = user;
+  }, []);
+
   const deliver = useCallback(
     (localId: string, request: () => Promise<SendOutcome>) => {
       const sentFrom = activeChatIdRef.current;
@@ -276,7 +285,7 @@ export function useChat(
           status: 'sending',
         },
       });
-      deliver(localId, () => sendText(identifier, externalId, text));
+      deliver(localId, () => sendText(identifier, externalId, text, identityRef.current));
     },
     [identifier, externalId, deliver]
   );
@@ -303,7 +312,7 @@ export function useChat(
           pendingFile: file,
         },
       });
-      deliver(localId, () => sendFile(identifier, externalId, field, file));
+      deliver(localId, () => sendFile(identifier, externalId, field, file, identityRef.current));
     },
     [identifier, externalId, deliver]
   );
@@ -314,10 +323,10 @@ export function useChat(
       if (!message || message.status !== 'failed') return;
       dispatch({ type: 'send/retry', localId });
       if (message.kind === 'text') {
-        deliver(localId, () => sendText(identifier, externalId, message.text ?? ''));
+        deliver(localId, () => sendText(identifier, externalId, message.text ?? '', identityRef.current));
       } else if (message.pendingFile) {
         deliver(localId, () =>
-          sendFile(identifier, externalId, message.kind as MediaField, message.pendingFile!)
+          sendFile(identifier, externalId, message.kind as MediaField, message.pendingFile!, identityRef.current)
         );
       } else {
         dispatch({ type: 'send/failed', localId });
@@ -360,5 +369,6 @@ export function useChat(
     loadOlder,
     refreshHistory,
     notifyVisibility,
+    setIdentity,
   };
 }

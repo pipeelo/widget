@@ -41,9 +41,15 @@
         </button>
         <p>
           Comandos no console: <code>Pipeelo('open')</code> · <code>Pipeelo('close')</code> ·
-          <code>Pipeelo('toggle')</code>. Um <code>Pipeelo('toggle')</code> já foi enfileirado
-          <em>antes</em> do loader carregar para exercitar a fila — comente no fonte se atrapalhar.
+          <code>Pipeelo('toggle')</code> · <code>Pipeelo('setUser', {…})</code>. Um
+          <code>Pipeelo('toggle')</code> e um <code>Pipeelo('setUser', {…})</code> já foram
+          enfileirados <em>antes</em> do loader carregar para exercitar a fila — comente no
+          fonte se atrapalhar.
         </p>
+        <button onclick="Pipeelo('setUser', { name: 'Maria Dev', email: 'maria@dev.test', phone: '+55 62 90000-0000', document: '000.000.000-00' })">
+          setUser (Maria Dev)
+        </button>
+        <button onclick="Pipeelo('setUser', null)">setUser(null) — limpar</button>
       </div>
 
       <section>
@@ -78,6 +84,8 @@
         if (!id) return;
         w.Pipeelo = w.Pipeelo || function () { (w.Pipeelo.q = w.Pipeelo.q || []).push(arguments) };
         w.Pipeelo('toggle'); // testa a fila pré-carregamento a cada load
+        // testa o drain da fila com payload (setUser antes do loader carregar)
+        w.Pipeelo('setUser', { name: 'Maria Fila', email: 'fila@dev.test' });
         var s = d.createElement('script');
         s.type = 'module';
         s.async = true;

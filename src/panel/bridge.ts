@@ -1,4 +1,9 @@
-import { isWidgetMessage, type LoaderToPanel, type PanelToLoader } from '../shared/protocol';
+import {
+  isWidgetMessage,
+  type LoaderToPanel,
+  type PanelToLoader,
+  type WidgetUser,
+} from '../shared/protocol';
 
 // Ponte do lado do painel. O origin do host é desconhecido a priori
 // (qualquer site pode embutir — é o produto): o painel PINA o origin da
@@ -8,6 +13,7 @@ import { isWidgetMessage, type LoaderToPanel, type PanelToLoader } from '../shar
 
 let parentOrigin: string | null = null;
 let visibilityHandler: ((open: boolean) => void) | null = null;
+let identifyHandler: ((user: WidgetUser | null) => void) | null = null;
 const outbox: PanelToLoader[] = [];
 
 export function isEmbedded(): boolean {
@@ -24,8 +30,12 @@ function flush(): void {
   while ((msg = outbox.shift())) window.parent.postMessage(msg, parentOrigin);
 }
 
-export function initPanelBridge(onVisibility: (open: boolean) => void): void {
+export function initPanelBridge(
+  onVisibility: (open: boolean) => void,
+  onIdentify: (user: WidgetUser | null) => void
+): void {
   visibilityHandler = onVisibility;
+  identifyHandler = onIdentify;
   if (!isEmbedded()) return; // painel aberto direto no browser (dev): ponte inerte
 
   window.addEventListener('message', (event: MessageEvent) => {
@@ -39,6 +49,7 @@ export function initPanelBridge(onVisibility: (open: boolean) => void): void {
     }
     const msg = event.data as LoaderToPanel;
     if (msg.type === 'visibility' && visibilityHandler) visibilityHandler(Boolean(msg.open));
+    else if (msg.type === 'identify' && identifyHandler) identifyHandler(msg.user ?? null);
   });
 
   // Única mensagem enviada com targetOrigin '*': não carrega nenhum dado
