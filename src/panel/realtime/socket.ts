@@ -1,5 +1,5 @@
 import Pusher from 'pusher-js';
-import type { ApiMessage } from '../api/types';
+import type { ApiMessage, ChatClosedEvent } from '../api/types';
 import { ENV } from '../env';
 
 // Canal PÚBLICO do Soketi por identidade: a segurança é o nome inadivinhável
@@ -13,6 +13,7 @@ export function createSocket(opts: {
   identifier: string;
   externalId: string;
   onMessage(item: ApiMessage): void;
+  onChatClosed(event: ChatClosedEvent): void;
   /** current: estado novo; hadConnected: já esteve conectado antes (reconexão). */
   onState(current: string, hadConnected: boolean): void;
 }): SocketHandle {
@@ -36,6 +37,15 @@ export function createSocket(opts: {
     ) {
       opts.onMessage(payload as ApiMessage);
     }
+  });
+  channel.bind('website-channel.chat-closed', (payload: unknown) => {
+    if (payload === null || typeof payload !== 'object') return;
+    const data = payload as { chat_id?: unknown; ended_at?: unknown };
+    if (typeof data.chat_id !== 'string') return;
+    opts.onChatClosed({
+      chat_id: data.chat_id,
+      ended_at: typeof data.ended_at === 'string' ? data.ended_at : null,
+    });
   });
 
   let hadConnected = pusher.connection.state === 'connected';

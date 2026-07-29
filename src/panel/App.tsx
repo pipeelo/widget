@@ -5,12 +5,15 @@ import { normalizeDisplayMode } from '../shared/widget-config';
 import { fetchConfig } from './api/client';
 import type { WidgetConfig } from './api/types';
 import { initPanelBridge, isEmbedded, postToLoader } from './bridge';
+import { ClosedNotice } from './components/ClosedNotice';
 import { Composer } from './components/Composer';
+import { ConversationList } from './components/ConversationList';
 import { Footer } from './components/Footer';
 import { Header } from './components/Header';
 import { MessageList } from './components/MessageList';
 import { STR } from './lib/strings';
 import { useChat } from './state/useChat';
+import { useConversations } from './state/useConversations';
 
 export interface PanelParams {
   id: string;
@@ -20,13 +23,22 @@ export interface PanelParams {
   mode: string | null;
 }
 
+type View = 'boot' | 'list' | 'thread';
+
 export function App({ params }: { params: PanelParams }) {
   const [config, setConfig] = useState<WidgetConfig | null>(null);
   const [configLoading, setConfigLoading] = useState(true);
   // Painel aberto direto no browser (dev/standalone): trata como visível.
   const [open, setOpen] = useState(!isEmbedded());
   const [focusToken, setFocusToken] = useState(0);
-  const chat = useChat(params.id, params.eid, params.lastread);
+  const [view, setView] = useState<View>('boot');
+
+  const conversations = useConversations(params.id, params.eid);
+  const chat = useChat(params.id, params.eid, params.lastread, {
+    conversations: conversations.items,
+    onConversationsStale: conversations.refresh,
+    onChatClosed: conversations.markClosed,
+  });
 
   useEffect(() => {
     initPanelBridge((isOpen) => {
@@ -43,6 +55,33 @@ export function App({ params }: { params: PanelParams }) {
     if (!isEmbedded()) chat.notifyVisibility(true);
     // chat.notifyVisibility é estável (useCallback sem deps)
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const landedRef = useRef(false);
+  useEffect(() => {
+    if (landedRef.current) return;
+    if (!conversations.loaded && !conversations.error) return;
+    landedRef.current = true;
+    if (chat.state.order.length > 0) {
+      setView('thread');
+      return;
+    }
+    if (conversations.open) {
+      chat.openConversation(conversations.open.chat_id);
+      setView('thread');
+    } else if (conversations.items.length > 0 || conversations.error) {
+      setView('list');
+    } else {
+      chat.openConversation(null);
+      setView('thread');
+    }
+  }, [
+    conversations.loaded,
+    conversations.error,
+    conversations.open,
+    conversations.items,
+    chat.openConversation,
+    chat.state.order.length,
+  ]);
 
   useEffect(() => {
     let cancelled = false;
@@ -147,6 +186,18 @@ export function App({ params }: { params: PanelParams }) {
   const close = () => postToLoader({ __pipeelo: true, type: 'close' });
   const name = (config?.name ?? '').trim() || STR.brandFallback;
 
+  const openThread = (chatId: string | null) => {
+    chat.openConversation(chatId);
+    setView('thread');
+    setFocusToken((t) => t + 1);
+  };
+
+  const active = chat.activeChatId
+    ? conversations.items.find((item) => item.chat_id === chat.activeChatId) ?? null
+    : null;
+  const readOnly = Boolean(active?.ended_at);
+  const canStartNew = (conversations.loaded || conversations.error) && !conversations.open;
+
   return (
     <div class="panel">
       <Header
@@ -154,6 +205,11 @@ export function App({ params }: { params: PanelParams }) {
         brandGradient={!config?.widget_color}
         loading={configLoading && !config}
         showClose={!fullscreen}
+        onBack={
+          view === 'thread' && conversations.items.length > 0
+            ? () => setView('list')
+            : undefined
+        }
         onClose={close}
       />
       {chat.socketDown && (
@@ -161,23 +217,52 @@ export function App({ params }: { params: PanelParams }) {
           {STR.reconnecting}
         </div>
       )}
-      <MessageList
-        state={chat.state}
-        open={open}
-        avatarInitial={(name.charAt(0) || 'P').toUpperCase()}
-        welcome={config?.welcome_message ?? null}
-        historyError={chat.historyError}
-        loadingOlder={chat.loadingOlder}
-        onRetryHistory={chat.refreshHistory}
-        loadOlder={chat.loadOlder}
-        onRetry={chat.retry}
-        onMediaError={onMediaError}
-      />
-      <Composer
-        onSendText={chat.sendTextMessage}
-        onSendFile={chat.sendFileMessage}
-        focusToken={focusToken}
-      />
+
+      {view === 'list' ? (
+        <ConversationList
+          items={conversations.items}
+          loaded={conversations.loaded}
+          error={conversations.error}
+          loadingMore={conversations.loadingMore}
+          hasMore={conversations.hasMore}
+          canStartNew={canStartNew}
+          onOpen={openThread}
+          onStartNew={() => openThread(null)}
+          onRetry={conversations.refresh}
+          onLoadMore={conversations.loadMore}
+        />
+      ) : (
+        <>
+          <MessageList
+            key={chat.activeChatId ?? 'new'}
+            state={chat.state}
+            open={open}
+            avatarInitial={(name.charAt(0) || 'P').toUpperCase()}
+            welcome={readOnly ? null : config?.welcome_message ?? null}
+            historyError={chat.historyError}
+            loadingOlder={chat.loadingOlder}
+            onRetryHistory={chat.refreshHistory}
+            loadOlder={chat.loadOlder}
+            onRetry={chat.retry}
+            onMediaError={onMediaError}
+          />
+          {readOnly ? (
+            <ClosedNotice
+              endedAt={active?.ended_at ?? null}
+              protocol={active?.protocol ?? null}
+              canStartNew={canStartNew}
+              onStartNew={() => openThread(null)}
+            />
+          ) : (
+            <Composer
+              onSendText={chat.sendTextMessage}
+              onSendFile={chat.sendFileMessage}
+              focusToken={focusToken}
+            />
+          )}
+        </>
+      )}
+
       {!fullscreen && <Footer />}
     </div>
   );

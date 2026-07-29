@@ -71,7 +71,13 @@ function rebuild(state: ChatState, byId: Map<string, ChatMessage>, patch?: Parti
 }
 
 export type ChatAction =
-  | { type: 'history/replace'; items: ApiMessage[]; nextCursor: string | null }
+  | { type: 'conversation/reset'; loaded: boolean }
+  | {
+      type: 'history/replace';
+      items: ApiMessage[];
+      nextCursor: string | null;
+      adoptCursor: boolean;
+    }
   | { type: 'history/prependOlder'; items: ApiMessage[]; nextCursor: string | null }
   | { type: 'send/optimistic'; message: ChatMessage }
   | { type: 'send/confirmed'; localId: string; messageId: string }
@@ -81,14 +87,17 @@ export type ChatAction =
 
 export function chatReducer(state: ChatState, action: ChatAction): ChatState {
   switch (action.type) {
+    case 'conversation/reset':
+      return { byId: new Map(), order: [], nextCursor: null, historyLoaded: action.loaded };
+
     // 1ª página e refetch de reconexão. Upsert renova media_url expirada e
     // preserva otimistas (nunca remove ids não mencionados). O cursor de
-    // páginas antigas só é adotado na primeira carga — um refetch da página
-    // recente não pode rebobinar uma paginação já avançada.
+    // páginas antigas só é adotado na primeira carga do atendimento — um
+    // refetch da página recente não pode rebobinar uma paginação já avançada.
     case 'history/replace': {
       const byId = new Map(state.byId);
       for (const item of action.items) byId.set(item.message_id, fromApi(item));
-      const nextCursor = state.historyLoaded ? state.nextCursor : action.nextCursor;
+      const nextCursor = action.adoptCursor ? action.nextCursor : state.nextCursor;
       return rebuild(state, byId, { nextCursor, historyLoaded: true });
     }
 
