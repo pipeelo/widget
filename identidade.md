@@ -1,10 +1,12 @@
 # Widget Pipeelo — Identificação do cliente
 
-> **Status: proposta de contrato (spec).** O client-side (`Pipeelo('setUser', …)`)
-> e o endpoint de identidade descritos aqui **ainda não estão implementados** — o
-> loader hoje só entende `open`/`close`/`toggle`. Este doc define o contrato para
-> quando forem. Fecha os itens "pré-chat" e "verificação de identidade (HMAC/JWT)"
-> que o [`widget.md`](./widget.md) marca como *Em aberto*.
+> **Status: parcialmente implementado.** O subconjunto básico do `setUser`
+> (`name`/`email`/`phone`/`document`, sem assinatura) está implementado de ponta a
+> ponta — comando no loader, `identify` no protocolo, bloco `user` em todo envio;
+> `setUser(null)` faz o papel do `reset`. O restante — `ref`, `attributes`,
+> `signature` e o modo verificado (HMAC/JWT) — segue como spec, pendente de backend.
+> O item "pré-chat" que o [`widget.md`](./widget.md) marca como *Em aberto* tem spec
+> própria em [`pre-chat.md`](./pre-chat.md).
 
 ## O problema
 
