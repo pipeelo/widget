@@ -1,9 +1,10 @@
 # Widget Pipeelo — Pré-chat form (identificação antes da primeira conversa)
 
-> **Status: proposta (spec).** Nada daqui está implementado — nem no widget, nem no
-> backend. Fecha o item "pré-chat" que o [`widget.md`](./widget.md) marca como *Em
-> aberto* e complementa o [`identidade.md`](./identidade.md): o `setUser` cobre o site
-> que **já sabe** quem é o visitante; este doc cobre o canal que **exige** saber —
+> **Status: implementado no widget** (gate no `App.tsx`, `src/panel/lib/pre-chat.ts`,
+> `PreChatForm`); backend em rollout — spec da API em
+> `Projects/api/docs/website-channel-pre-chat.md`. Decisões de implementação na seção
+> própria abaixo. Complementa o [`identidade.md`](./identidade.md): o `setUser` cobre o
+> site que **já sabe** quem é o visitante; este doc cobre o canal que **exige** saber —
 > quando o site não entrega (tudo), o próprio visitante preenche. Não substitui o modo
 > verificado (HMAC/JWT), que segue feature à parte.
 
@@ -72,12 +73,11 @@ Mostrar o formulário quando **todas** valem:
    de storage novo — como *nada é criado no servidor até a primeira mensagem*,
    "primeira conversa" ≡ "não há conversas para este `external_id`".
 
-Fluxo: view própria entre o boot e o thread (`boot → form → thread`), com o
-`welcome_message` como abertura (quando houver), os campos exigidos **que faltam** e um
-botão "Iniciar conversa". Ao enviar, os valores viram a identidade do painel — o mesmo
-caminho do `identify`, latest-wins — e saem no bloco `user` do primeiro
-`POST /website-channel/message` e de todos os seguintes. **Nenhuma chamada nova**: o
-servidor continua só conhecendo o visitante na primeira mensagem.
+Fluxo: view própria entre o boot e o thread (`boot → form → thread`), com título fixo
+do painel como abertura, os campos exigidos **que faltam** e um botão "Iniciar
+conversa". Ao enviar, os valores viram a identidade do painel e saem no bloco `user`
+do primeiro `POST /website-channel/message` e de todos os seguintes. **Nenhuma chamada
+nova**: o servidor continua só conhecendo o visitante na primeira mensagem.
 
 Casos de borda:
 
@@ -96,6 +96,29 @@ Validação client-side mínima: obrigatórios não-vazios (trim), email com for
 corte em 255 (o mesmo limite do `sanitizeUser` do loader). Máscara/validação forte de
 CPF/CNPJ e telefone ficam para o backend — o painel não deve encarnar regra de negócio.
 Strings em `src/panel/lib/strings.ts`; tema e densidade mobile como o resto do painel.
+
+## Decisões de implementação (ago/2026)
+
+- **Sem "pular".** Gate completo; o objeto `pre_chat_form` comporta um
+  `required: false` futuro sem quebrar contrato.
+- **Título próprio do painel** ("Antes de começar…") em vez do `welcome_message` como
+  abertura do form: a welcome já é o primeiro balão da thread vazia — usá-la nos dois
+  duplicaria a saudação. A thread pós-form fica idêntica à de qualquer visitante.
+- **Identidade em dois slots** (`src/panel/lib/pre-chat.ts`): o do host (`setUser`) e
+  o do formulário, compostos por campo — o host vence quando o valor dele serve para o
+  campo. `setUser(null)` (logout) zera só o slot do host: o que o visitante digitou
+  sobrevive até fechar a página. E-mail só conta como coberto com formato básico
+  válido (a mesma régua da API, que descarta inválido em silêncio) — e-mail lixo do
+  site não fura o form.
+- **O landing espera a config só no caminho de primeira conversa** (zero conversas):
+  visitante recorrente não paga nada e o 1º open instantâneo (3fff70b) fica intacto.
+  Config e conversas já saem em paralelo no mount — a espera é `max()`, não soma.
+- **O composer segura o envio durante o boot** (texto e anexo; digitação e foco
+  seguem livres): sem isso, quem digitasse rápido criaria a conversa antes de o
+  landing decidir e furaria o gate.
+- A transição `form → thread` tem um **ponto único** (effect no `App`): o submit só
+  grava a identidade; cobertura completa — pelo submit ou por um `identify` tardio —
+  dispensa o form pelo mesmo caminho.
 
 ## Contrato pendente com o backend (time da API/dashboard)
 

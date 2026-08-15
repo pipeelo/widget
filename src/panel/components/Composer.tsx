@@ -31,6 +31,7 @@ export function Composer(props: {
   onSendFile(field: MediaField, file: File): void;
   /** Incrementado pelo App quando o painel abre — foca o campo (só desktop). */
   focusToken: number;
+  disabled?: boolean;
 }) {
   const [text, setText] = useState('');
   const [fileError, setFileError] = useState<string | null>(null);
@@ -63,7 +64,7 @@ export function Composer(props: {
 
   const submit = () => {
     const value = text.trim();
-    if (!value) return;
+    if (!value || props.disabled) return;
     props.onSendText(value);
     setText('');
     areaRef.current?.focus();
@@ -84,7 +85,7 @@ export function Composer(props: {
     const input = event.currentTarget as HTMLInputElement;
     const file = input.files && input.files[0];
     input.value = '';
-    if (!file) return;
+    if (!file || props.disabled) return;
     const result = classifyFile(file);
     if (!result.ok) {
       showError(result.error);
@@ -108,6 +109,7 @@ export function Composer(props: {
           type="button"
           class="composer-attach"
           aria-label={STR.attach}
+          disabled={props.disabled}
           onPointerDown={keepFocus}
           onClick={() => fileRef.current?.click()}
         >
@@ -133,7 +135,7 @@ export function Composer(props: {
           type="button"
           class="composer-send"
           aria-label={STR.send}
-          disabled={!text.trim()}
+          disabled={!text.trim() || props.disabled}
           onPointerDown={keepFocus}
           onClick={submit}
         >

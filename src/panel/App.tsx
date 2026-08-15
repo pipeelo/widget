@@ -11,6 +11,8 @@ import { ConversationList } from './components/ConversationList';
 import { Footer } from './components/Footer';
 import { Header } from './components/Header';
 import { MessageList } from './components/MessageList';
+import { PreChatForm } from './components/PreChatForm';
+import { missingPreChatFields } from './lib/pre-chat';
 import { STR } from './lib/strings';
 import { useChat } from './state/useChat';
 import { useConversations } from './state/useConversations';
@@ -23,7 +25,7 @@ export interface PanelParams {
   mode: string | null;
 }
 
-type View = 'boot' | 'list' | 'thread';
+type View = 'boot' | 'form' | 'list' | 'thread';
 
 export function App({ params }: { params: PanelParams }) {
   const [config, setConfig] = useState<WidgetConfig | null>(null);
@@ -60,6 +62,8 @@ export function App({ params }: { params: PanelParams }) {
   useEffect(() => {
     if (landedRef.current) return;
     if (!conversations.loaded && !conversations.error) return;
+    const firstConversation = conversations.loaded && conversations.items.length === 0;
+    if (firstConversation && configLoading) return;
     landedRef.current = true;
     if (chat.state.order.length > 0) {
       setView('thread');
@@ -70,6 +74,8 @@ export function App({ params }: { params: PanelParams }) {
       setView('thread');
     } else if (conversations.items.length > 0 || conversations.error) {
       setView('list');
+    } else if (missingPreChatFields(config, chat.identity).length > 0) {
+      setView('form');
     } else {
       chat.openConversation(null);
       setView('thread');
@@ -81,7 +87,18 @@ export function App({ params }: { params: PanelParams }) {
     conversations.items,
     chat.openConversation,
     chat.state.order.length,
+    configLoading,
+    config,
+    chat.identity,
   ]);
+
+  useEffect(() => {
+    if (view !== 'form') return;
+    if (missingPreChatFields(config, chat.identity).length > 0) return;
+    chat.openConversation(null);
+    setView('thread');
+    setFocusToken((t) => t + 1);
+  }, [view, config, chat.identity, chat.openConversation]);
 
   useEffect(() => {
     let cancelled = false;
@@ -218,7 +235,9 @@ export function App({ params }: { params: PanelParams }) {
         </div>
       )}
 
-      {view === 'list' ? (
+      {view === 'form' ? (
+        <PreChatForm fields={missingPreChatFields(config, chat.identity)} onSubmit={chat.setFormUser} />
+      ) : view === 'list' ? (
         <ConversationList
           items={conversations.items}
           loaded={conversations.loaded}
@@ -258,6 +277,7 @@ export function App({ params }: { params: PanelParams }) {
               onSendText={chat.sendTextMessage}
               onSendFile={chat.sendFileMessage}
               focusToken={focusToken}
+              disabled={view === 'boot'}
             />
           )}
         </>

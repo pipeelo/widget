@@ -7,6 +7,7 @@ export interface WidgetConfig {
   theme?: string | null; // 'light' | 'dark' | 'auto'
   message_preview?: string | null; // texto do teaser proativo; null = sem cartão
   display_mode?: string | null; // 'floating' | 'fullscreen'
+  pre_chat_form?: { fields?: string[] | null } | null;
 }
 
 // floating = bolha flutuante (padrão); fullscreen = o chat ocupa a página toda

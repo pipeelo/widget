@@ -61,5 +61,5 @@ Rotas públicas, sem autenticação, identificadas pelo id (uuid) do registro do
 
 ## Em aberto
 
-- Config estendida do widget (aparência além do contrato inicial) — evolui junto com o endpoint de config. Pré-chat obrigatório (formulário antes da primeira conversa quando o `setUser` não cobre os campos exigidos) tem spec em [`pre-chat.md`](./pre-chat.md).
+- Config estendida do widget (aparência além do contrato inicial) — evolui junto com o endpoint de config. O pré-chat obrigatório (formulário antes da primeira conversa quando o `setUser` não cobre os campos exigidos) está **implementado no painel** — spec e decisões em [`pre-chat.md`](./pre-chat.md); depende do campo `pre_chat_form` no config do canal (backend em rollout).
 - Verificação de identidade quando houver visitante logado (HMAC `identifier_hash` do Chatwoot ou JWT com expiração — o modelo atual do Intercom, que tratou o `user_hash` como legado). Spec do contrato (site passando dados do cliente via `Pipeelo('setUser', …)`) em [`identidade.md`](./identidade.md).

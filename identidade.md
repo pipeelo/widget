@@ -5,8 +5,8 @@
 > ponta — comando no loader, `identify` no protocolo, bloco `user` em todo envio;
 > `setUser(null)` faz o papel do `reset`. O restante — `ref`, `attributes`,
 > `signature` e o modo verificado (HMAC/JWT) — segue como spec, pendente de backend.
-> O item "pré-chat" que o [`widget.md`](./widget.md) marca como *Em aberto* tem spec
-> própria em [`pre-chat.md`](./pre-chat.md).
+> O pré-chat (formulário quando o `setUser` não cobre os campos exigidos) está
+> implementado no painel — spec em [`pre-chat.md`](./pre-chat.md).
 
 ## O problema
 

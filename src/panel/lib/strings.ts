@@ -35,4 +35,13 @@ export const STR = {
   closedAt: (when: string) => `Atendimento encerrado · ${when}`,
   closedPlain: 'Atendimento encerrado',
   protocol: (value: string) => `Protocolo ${value}`,
+  preChatTitle: 'Antes de começar',
+  preChatIntro: 'Conte pra gente quem você é — assim o atendimento já começa do jeito certo.',
+  preChatName: 'Nome',
+  preChatEmail: 'E-mail',
+  preChatPhone: 'Telefone',
+  preChatDocument: 'CPF/CNPJ',
+  preChatRequired: 'Preencha este campo.',
+  preChatEmailInvalid: 'Informe um e-mail válido.',
+  preChatSubmit: 'Iniciar conversa',
 };

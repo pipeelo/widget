@@ -746,6 +746,94 @@ button {
   margin-top: 8px;
 }
 
+/* ---------- pré-chat ---------- */
+
+.prechat {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 18px calc(16px + var(--pip-safe-right)) calc(16px + var(--pip-safe-bottom))
+    calc(16px + var(--pip-safe-left));
+  background: var(--pip-list-bg);
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.prechat-head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 4px 0 6px;
+}
+
+.prechat-head p {
+  margin: 0;
+}
+
+.prechat-title {
+  font-size: var(--pip-fs-title);
+  font-weight: 600;
+  color: var(--pip-text-strong);
+}
+
+.prechat-intro {
+  font-size: var(--pip-fs-small);
+  line-height: 1.5;
+  color: var(--pip-text);
+}
+
+.prechat-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.prechat-label {
+  font-size: var(--pip-fs-meta);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--pip-text-soft);
+}
+
+.prechat-input {
+  width: 100%;
+  min-height: 40px;
+  padding: 9px 12px;
+  border: 1px solid var(--pip-border);
+  border-radius: 10px;
+  background: var(--pip-surface);
+  color: var(--pip-text-strong);
+  font-family: var(--pip-font);
+  font-size: var(--pip-fs-input);
+  line-height: 1.4;
+  outline: none;
+  caret-color: var(--pip-primary);
+}
+
+.prechat-input::placeholder {
+  color: var(--pip-placeholder);
+}
+
+.prechat-input:focus {
+  border-color: var(--pip-primary);
+}
+
+.prechat-input--invalid {
+  border-color: var(--pip-negative);
+}
+
+.prechat-error {
+  font-size: var(--pip-fs-meta);
+  color: var(--pip-negative);
+}
+
+.prechat-submit {
+  margin-top: 6px;
+}
+
 /* ---------- composer ---------- */
 
 .composer {
@@ -805,15 +893,20 @@ button {
 }
 
 @media (hover: hover) {
-  .composer-attach:hover {
+  .composer-attach:hover:not(:disabled) {
     background: var(--pip-bubble-company);
     color: var(--pip-text);
   }
 }
 
-.composer-attach:active {
+.composer-attach:active:not(:disabled) {
   background: var(--pip-bubble-company);
   color: var(--pip-text);
+}
+
+.composer-attach:disabled {
+  opacity: 0.35;
+  cursor: default;
 }
 
 .composer-input {
@@ -1091,6 +1184,11 @@ a:focus-visible {
 
 :root[data-density='mobile'] .conv-more {
   min-height: 44px;
+}
+
+:root[data-density='mobile'] .prechat-input {
+  min-height: 44px;
+  border-radius: 12px;
 }
 
 :root[data-density='mobile'] .skeleton-row {

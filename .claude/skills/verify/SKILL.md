@@ -13,9 +13,16 @@ de verdade e dirigir por CDP.
 
 1. **Server same-origin** (Node ≥22, sem deps): serve `dist/` + página host
    fake com o snippet real (`<script async src="/v1/loader.js?id=…">`) + API
-   fake em `/v1/website-channel/{config,history,message}/:id`. Config:
-   `display_mode` decidido pelo id (contém "float" → float, senão fullscreen);
-   `data: []` no history; POST message → `201 {message_id}`. Registrar as
+   fake em `/v1/website-channel/{config,conversations,history,message}/:id`.
+   Config decidida pelo id: contém "float" → floating, senão fullscreen;
+   contém "dark" → theme dark; contém "prechat" →
+   `pre_chat_form: {fields:['name','email']}`. `/conversations` é OBRIGATÓRIA
+   (o gate do pré-chat e o landing dependem dela): vazia para visitante novo;
+   guardar os POSTs de message por `external_id` e devolver 1 conversa aberta
+   depois do primeiro — history devolve os mesmos itens (DESC). POST message →
+   `201 {message_id, chat_id}`; expor `GET /__log` com os bodies (assert do
+   bloco `user`) e `POST /__reset`. Página host aceita `?setuser=full|partial|
+   bademail` para injetar `Pipeelo('setUser', …)` no snippet. Registrar as
    rotas da API ANTES do estático (ambos sob `/v1/`).
 2. **Build apontando para o server**: `VITE_API_URL=http://127.0.0.1:<porta>/v1 npm run build`
    (a env vence o `.env.local`; `npm run build` puro restaura o build normal).
@@ -58,6 +65,14 @@ não existirem mais, reescrever seguindo os passos acima (~150 linhas).
 - Landscape 844×390 → tela cheia + trava (`max-height:500px` na MOBILE_MEDIA).
 - Desktop 1280×800 (mouse, `mobile:false`) → flutuante 400px, SEM trava,
   chevron fecha.
+- **Pré-chat** (id com "prechat", visitante novo): form no lugar do composer
+  com só os campos exigidos que faltam; submit vazio/email inválido → erros
+  inline; submit válido → thread + welcome e o POST seguinte leva o bloco
+  `user` (conferir no `/__log`). `setuser=full` → sem form; `setuser=partial`
+  → form só com o que falta; `setuser=bademail` → form pede o e-mail (inválido
+  não cobre); `Pipeelo('setUser', …)` completo COM o form aberto → dispensa
+  sozinho; aba nova (token persistido, conversa existente) → sem form. Com
+  rede lenta, o composer do boot segura envio+anexo (disabled) até o landing.
 - **Boot frio com rede lenta** (latência percebida): perfil novo +
   `localStorage.clear()` + `Network.setCacheDisabled` +
   `Network.emulateNetworkConditions` (150ms/750kbps). Tap na bolha →

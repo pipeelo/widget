@@ -9,7 +9,7 @@ Widget de chat embutível estilo Intercom (canal `WEBSITE` da Pipeelo): bolha fl
 - `README.md` — anatomia, comportamentos-chave, deploy Vercel
 - `widget.md` — contrato do projeto e decisões (iframe vs Shadow DOM, token no host, Preact, pusher-js)
 - `identidade.md` — spec do `setUser`. O subconjunto básico (`name`/`email`/`phone`/`document`) está implementado de ponta a ponta; `ref`/`attributes`/`signature` (modo verificado) seguem só como spec, pendentes de backend
-- `pre-chat.md` — spec do formulário pré-chat obrigatório (campo `pre_chat_form` na config do canal); **não implementado**
+- `pre-chat.md` — spec do formulário pré-chat obrigatório (campo `pre_chat_form` na config do canal); **implementado no painel** (gate em `App.tsx` + `src/panel/lib/pre-chat.ts` + `PreChatForm`), backend em rollout
 - Contrato da API (fora deste repo): `Projects/api/docs/website-channel.md`
 
 Docs e comentários de código em pt-BR; commits em inglês, Conventional Commits (`feat:`/`fix:`/`perf:`/`chore:`).
@@ -57,7 +57,7 @@ Além disso: o loader só importa de `src/shared/` (zero dependências de runtim
 ### Papéis
 
 - **Loader**: cunha/guarda o token de sessão (uuid v4 = `external_id`) no `localStorage` da página HOST, chaves `pipeelo:token|lastread|teaser` (storage de iframe de terceiro é efêmero no Safari); bolha, teaser e badge; injeta o iframe com parâmetros no fragment (não vaza em Referer) e deriva a URL do painel do próprio `src` do script (domain-agnostic); trava de scroll do host e teclado iOS via `visualViewport`; drena a fila `Pipeelo.q` — comandos `open`/`close`/`toggle`/`setUser` (`setUser(null)` = logout).
-- **Painel** (Preact + pusher-js): config, lista de conversas, histórico por cursor, socket Soketi (canal público `website-channel.{identifier}.{external_id}`, evento `website-channel.message`), envio otimista. A identidade do `setUser` chega por `identify`, é reenviada a cada `ready` (reload do iframe zera o ref) e sai como bloco `user` em TODO envio, não só no primeiro.
+- **Painel** (Preact + pusher-js): config, lista de conversas, histórico por cursor, socket Soketi (canal público `website-channel.{identifier}.{external_id}`, evento `website-channel.message`), envio otimista. A identidade vive em DOIS slots compostos por campo (`src/panel/lib/pre-chat.ts`): o do host (`setUser` chega por `identify`, reenviado a cada `ready` — reload do iframe zera o ref; `setUser(null)` zera só esse slot) e o do formulário pré-chat; a composição sai como bloco `user` em TODO envio, não só no primeiro. Pré-chat: `pre_chat_form.fields` na config + identidade que não cobre + zero conversas → view `form` antes do thread; só esse caminho espera a config no landing, e o composer segura envio (não digitação) durante o boot.
 - **`src/panel/state/store.ts`** é o coração: reducer puro onde tudo é upsert por `message_id` — histórico (fonte de verdade), eco do socket (entrega at-least-once) e otimistas convergem sem duplicar. Reconexão de socket = refetch do histórico.
 
 ### Invariantes de produto (não regredir)

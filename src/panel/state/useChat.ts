@@ -4,6 +4,7 @@ import { uuidV4 } from '../../shared/uuid';
 import { fetchHistory, sendFile, sendText } from '../api/client';
 import type { ApiMessage, Conversation, MediaField, SendOutcome } from '../api/types';
 import { postToLoader } from '../bridge';
+import { composeIdentity } from '../lib/pre-chat';
 import type { SocketHandle } from '../realtime/socket';
 import { chatReducer, initialChatState, type ChatState } from './store';
 
@@ -22,6 +23,7 @@ export interface ChatController {
   socketDown: boolean;
   historyError: boolean;
   loadingOlder: boolean;
+  identity: WidgetUser | null;
   openConversation(chatId: string | null): void;
   sendTextMessage(text: string): void;
   sendFileMessage(field: MediaField, file: File): void;
@@ -30,8 +32,8 @@ export interface ChatController {
   refreshHistory(): void;
   /** Chamado pela ponte quando o loader abre/fecha o painel. */
   notifyVisibility(open: boolean): void;
-  /** Identidade declarada pelo host (setUser) — anexada a todo envio. */
   setIdentity(user: WidgetUser | null): void;
+  setFormUser(user: WidgetUser): void;
 }
 
 export function useChat(
@@ -60,7 +62,10 @@ export function useChat(
   const staleTimerRef = useRef<number | undefined>(undefined);
   const refetchTimerRef = useRef<number | undefined>(undefined);
 
+  const hostUserRef = useRef<WidgetUser | null>(null);
+  const formUserRef = useRef<WidgetUser | null>(null);
   const identityRef = useRef<WidgetUser | null>(null);
+  const [identity, setIdentityState] = useState<WidgetUser | null>(null);
 
   const lastReadRef = useRef<number>(lastReadParam ? Date.parse(lastReadParam) || 0 : 0);
   const unreadIdsRef = useRef<Set<string>>(new Set());
@@ -243,9 +248,27 @@ export function useChat(
     setSyncTick((t) => t + 1);
   }, []);
 
-  const setIdentity = useCallback((user: WidgetUser | null) => {
-    identityRef.current = user;
+  const recomposeIdentity = useCallback(() => {
+    const composed = composeIdentity(hostUserRef.current, formUserRef.current);
+    identityRef.current = composed;
+    setIdentityState(composed);
   }, []);
+
+  const setIdentity = useCallback(
+    (user: WidgetUser | null) => {
+      hostUserRef.current = user;
+      recomposeIdentity();
+    },
+    [recomposeIdentity]
+  );
+
+  const setFormUser = useCallback(
+    (user: WidgetUser) => {
+      formUserRef.current = { ...formUserRef.current, ...user };
+      recomposeIdentity();
+    },
+    [recomposeIdentity]
+  );
 
   const deliver = useCallback(
     (localId: string, request: () => Promise<SendOutcome>) => {
@@ -362,6 +385,7 @@ export function useChat(
     socketDown,
     historyError,
     loadingOlder,
+    identity,
     openConversation,
     sendTextMessage,
     sendFileMessage,
@@ -370,5 +394,6 @@ export function useChat(
     refreshHistory,
     notifyVisibility,
     setIdentity,
+    setFormUser,
   };
 }
