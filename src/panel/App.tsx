@@ -277,7 +277,10 @@ export function App({ params }: { params: PanelParams }) {
               onSendText={chat.sendTextMessage}
               onSendFile={chat.sendFileMessage}
               focusToken={focusToken}
-              disabled={view === 'boot'}
+              disabled={
+                view === 'boot' &&
+                (configLoading || missingPreChatFields(config, chat.identity).length > 0)
+              }
             />
           )}
         </>
