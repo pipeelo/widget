@@ -29,6 +29,8 @@ export const LOADER_CSS = `
 .pipeelo-ic-close{opacity:0;transform:rotate(-30deg)}
 .pipeelo-launcher.pipeelo-on .pipeelo-ic-chat{opacity:0;transform:rotate(30deg)}
 .pipeelo-launcher.pipeelo-on .pipeelo-ic-close{opacity:1;transform:rotate(0deg)}
+.pipeelo-launcher-img{position:absolute;inset:0;width:100%;height:100%;margin:0;padding:0;border:0;border-radius:50%;object-fit:cover;background:inherit;pointer-events:none;transition:opacity .2s ease}
+.pipeelo-launcher.pipeelo-on .pipeelo-launcher-img{opacity:0}
 .pipeelo-badge{position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#dc3545;color:#fff;font:600 11px/18px system-ui,-apple-system,sans-serif;text-align:center;box-sizing:border-box;box-shadow:0 1px 4px rgba(0,0,0,.25);letter-spacing:normal}
 .pipeelo-badge[hidden]{display:none}
 
@@ -64,7 +66,7 @@ html.pipeelo-fullscreen,html.pipeelo-fullscreen body{overflow:hidden!important}
 html.pipeelo-lock,html.pipeelo-lock body{overflow:hidden!important;overscroll-behavior:none}
 html.pipeelo-lock body{position:fixed!important;left:0!important;right:0!important;width:100%!important}
 @media (prefers-reduced-motion:reduce){
-  .pipeelo-launcher,.pipeelo-launcher:hover,.pipeelo-ic,.pipeelo-teaser,.pipeelo-teaser-card{transition:none}
+  .pipeelo-launcher,.pipeelo-launcher:hover,.pipeelo-ic,.pipeelo-launcher-img,.pipeelo-teaser,.pipeelo-teaser-card{transition:none}
   .pipeelo-launcher:hover,.pipeelo-launcher:active{transform:none}
   .pipeelo-frame{transition:opacity .15s linear,visibility 0s linear .15s;transform:none}
   .pipeelo-frame.pipeelo-on{transition:opacity .15s linear;transform:none}

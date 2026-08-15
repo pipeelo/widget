@@ -14,6 +14,7 @@ export interface Launcher {
   remove(): void;
   setOpen(open: boolean): void;
   setBadge(count: number): void;
+  setImage(url: string): void;
   setAppearance(background: string, foreground: string, useBrandGradient: boolean): void;
 }
 
@@ -82,6 +83,14 @@ export function createLauncher(handlers: {
         badge.textContent = '';
       }
       refreshLabel();
+    },
+    setImage(url) {
+      const image = document.createElement('img');
+      image.className = 'pipeelo-launcher-img';
+      image.alt = '';
+      image.addEventListener('error', () => image.remove());
+      image.src = url;
+      button.insertBefore(image, badge);
     },
     setAppearance(background, foreground, useBrandGradient) {
       button.style.background = useBrandGradient

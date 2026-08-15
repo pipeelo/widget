@@ -8,6 +8,7 @@ export interface WidgetConfig {
   message_preview?: string | null; // texto do teaser proativo; null = sem cartão
   display_mode?: string | null; // 'floating' | 'fullscreen'
   pre_chat_form?: { fields?: string[] | null } | null;
+  launcher_image?: string | null;
 }
 
 // floating = bolha flutuante (padrão); fullscreen = o chat ocupa a página toda

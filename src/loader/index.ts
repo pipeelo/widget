@@ -218,6 +218,8 @@ function start(
 
     const accent = safeAccentColor(cfg.widget_color);
     launcher.setAppearance(accent, textColorOn(accent), !cfg.widget_color);
+    const image = typeof cfg.launcher_image === 'string' ? cfg.launcher_image.trim() : '';
+    if (image) launcher.setImage(image);
     launcher.mount();
 
     const previewText = typeof cfg.message_preview === 'string' ? cfg.message_preview.trim() : '';
