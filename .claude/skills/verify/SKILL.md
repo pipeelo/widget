@@ -71,8 +71,12 @@ não existirem mais, reescrever seguindo os passos acima (~150 linhas).
   `user` (conferir no `/__log`). `setuser=full` → sem form; `setuser=partial`
   → form só com o que falta; `setuser=bademail` → form pede o e-mail (inválido
   não cobre); `Pipeelo('setUser', …)` completo COM o form aberto → dispensa
-  sozinho; aba nova (token persistido, conversa existente) → sem form. Com
-  rede lenta, o composer do boot segura envio+anexo (disabled) até o landing.
+  sozinho; aba nova (token persistido, conversa existente) → sem form.
+- **Segurança do gate vs. regressão de prod** (atrasar só `/conversations` no
+  server fake dá o teste determinístico): canal COM política → composer
+  segurado (envio+anexo `disabled`) durante o boot, até o form assumir; canal
+  SEM política → composer liberado assim que a config chega, ANTES das
+  conversas — canal sem pré-chat não pode pagar nada pelo gate.
 - **Boot frio com rede lenta** (latência percebida): perfil novo +
   `localStorage.clear()` + `Network.setCacheDisabled` +
   `Network.emulateNetworkConditions` (150ms/750kbps). Tap na bolha →
