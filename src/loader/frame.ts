@@ -51,6 +51,7 @@ export function createFrameController(panelBase: string, opts: { title: string }
       iframe = document.createElement('iframe');
       iframe.className = 'pipeelo-frame';
       iframe.title = opts.title;
+      iframe.allow = 'autoplay';
       iframe.setAttribute('aria-hidden', 'true');
       if (background) iframe.style.background = background;
       iframe.src = panelBase + hash;

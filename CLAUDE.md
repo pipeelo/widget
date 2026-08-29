@@ -42,13 +42,13 @@ Um repo, dois artefatos com restrições opostas, e o protocolo entre eles:
 | Painel | `src/panel/` | iframe `{origin}/v1/` | `vite.config.ts` (base `/v1/`) → `dist/v1/index.html` + assets hasheados |
 | Compartilhado | `src/shared/` | ambos | — |
 
-`src/shared/protocol.ts` é a fonte única do contrato postMessage (envelope `__pipeelo: true`): loader→painel `visibility`/`identify`; painel→loader `ready`/`close`/`unread`/`read`. Mudança de protocolo = os dois lados mudam juntos.
+`src/shared/protocol.ts` é a fonte única do contrato postMessage (envelope `__pipeelo: true`): loader→painel `visibility`/`identify`; painel→loader `ready`/`close`/`unread`/`read`/`notify`. Mudança de protocolo = os dois lados mudam juntos.
 
 ### Loader — restrições que quebram o build
 
 `scripts/check-loader-size.mjs` roda no `yarn build` e FALHA se o loader:
 
-- passar de 6400 bytes gzip (roda em site de terceiro — todo byte conta);
+- passar de 7168 bytes gzip (roda em site de terceiro — todo byte conta);
 - contiver `import.meta` ou `process.env` (SyntaxError/ReferenceError em script clássico — a env é inlinada via `define` no `vite.loader.config.ts`);
 - criar o global `PipeeloLoader` (o entry `src/loader/index.ts` não pode ter `export`).
 

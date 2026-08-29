@@ -1,6 +1,6 @@
 // Entry do loader — roda na página host do cliente. NÃO pode ter `export`
 // (o build IIFE criaria um global além de `Pipeelo`) e não pode depender de
-// nada fora de src/shared (orçamento < 6,25 kB gzip).
+// nada fora de src/shared (orçamento < 7 kB gzip).
 import { safeAccentColor, textColorOn } from '../shared/color';
 import type { WidgetUser } from '../shared/protocol';
 import { normalizeTheme, prefersDarkNow, themeIsDark } from '../shared/theme';
@@ -13,6 +13,7 @@ import { createLauncher } from './launcher';
 import { createSession } from './session';
 import { injectStyles, MOBILE_MEDIA } from './styles';
 import { createTeaser } from './teaser';
+import { setTitleCount } from './title';
 
 type PipeeloFn = ((...args: unknown[]) => void) & { q?: IArguments[]; loaded?: boolean };
 
@@ -91,6 +92,8 @@ function start(
   // (visitante recorrente) fica sem o hint; o painel cobre via pointer
   // coarse e pela própria config.
   let displayMode: string | null = null;
+  let brandName = 'Pipeelo';
+  let dark = false;
 
   injectStyles();
 
@@ -136,8 +139,16 @@ function start(
       if (identity) bridge.send({ __pipeelo: true, type: 'identify', user: identity });
     },
     onClose: () => doClose(),
-    onUnread: (count) => launcher.setBadge(count),
+    onUnread: (count) => {
+      launcher.setBadge(count);
+      setTitleCount(count);
+    },
     onRead: (at) => session.setLastReadAt(at),
+    onNotify: (text) => {
+      if (disabled || fullscreen || open) return;
+      teaser.hide(false);
+      teaser.show(brandName, text, dark);
+    },
   });
 
   function ensureFrame(): void {
@@ -202,8 +213,9 @@ function start(
 
     const cfg = result.config;
     displayMode = normalizeDisplayMode(cfg.display_mode);
+    brandName = cfg.name || brandName;
     // Fundo do iframe casa com o tema antes de o painel pintar (boot frio).
-    const dark = themeIsDark(normalizeTheme(cfg.theme), prefersDarkNow());
+    dark = themeIsDark(normalizeTheme(cfg.theme), prefersDarkNow());
     frame.setBackground(dark ? '#242424' : '#fff');
 
     if (displayMode === 'fullscreen') {
@@ -225,7 +237,7 @@ function start(
     const previewText = typeof cfg.message_preview === 'string' ? cfg.message_preview.trim() : '';
     if (previewText && !session.isTeaserDismissed()) {
       window.setTimeout(() => {
-        if (!open && !disabled) teaser.show(cfg.name || 'Pipeelo', previewText, dark);
+        if (!open && !disabled) teaser.show(brandName, previewText, dark);
       }, 1500);
     }
   });

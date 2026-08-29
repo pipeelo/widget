@@ -4,6 +4,7 @@ import { uuidV4 } from '../../shared/uuid';
 import { fetchHistory, sendFile, sendText } from '../api/client';
 import type { ApiMessage, Conversation, MediaField, SendOutcome } from '../api/types';
 import { postToLoader } from '../bridge';
+import { chime, previewOf } from '../lib/attention';
 import { composeIdentity } from '../lib/pre-chat';
 import type { SocketHandle } from '../realtime/socket';
 import { chatReducer, initialChatState, type ChatState } from './store';
@@ -73,8 +74,10 @@ export function useChat(
   const newestByChatRef = useRef<Map<string, number>>(new Map());
   const lastPostedUnreadRef = useRef<number | null>(null);
 
-  const trackUnread = useCallback((items: ApiMessage[]) => {
+  const trackUnread = useCallback((items: ApiMessage[], live: boolean) => {
     let changed = false;
+    let fresh: ApiMessage | null = null;
+    let freshEpoch = 0;
     for (const item of items) {
       if (item.from !== 'company') continue;
       const epoch = Date.parse(item.created_at) || 0;
@@ -88,9 +91,17 @@ export function useChat(
       if (epoch > lastReadRef.current && !unreadIdsRef.current.has(item.message_id)) {
         unreadIdsRef.current.add(item.message_id);
         changed = true;
+        if (epoch >= freshEpoch) {
+          fresh = item;
+          freshEpoch = epoch;
+        }
       }
     }
     if (changed) setSyncTick((t) => t + 1);
+    if (live && fresh && !(openRef.current && document.visibilityState === 'visible')) {
+      chime();
+      postToLoader({ __pipeelo: true, type: 'notify', text: previewOf(fresh) });
+    }
   }, []);
 
   const markConversationsStale = useCallback(() => {
@@ -113,7 +124,7 @@ export function useChat(
             nextCursor: page.next_cursor,
             adoptCursor,
           });
-          trackUnread(page.data);
+          trackUnread(page.data, !adoptCursor);
           setHistoryError(false);
         })
         .catch(() => {
@@ -157,7 +168,7 @@ export function useChat(
         identifier,
         externalId,
         onMessage: (item) => {
-          trackUnread([item]);
+          trackUnread([item], true);
           if (item.chat_id === activeChatIdRef.current) {
             dispatch({ type: 'socket/received', item });
           } else {

@@ -16,6 +16,7 @@ export function createBridge(
     onClose(): void;
     onUnread(count: number): void;
     onRead(at: string): void;
+    onNotify(text: string): void;
   }
 ): Bridge {
   let ready = false;
@@ -51,6 +52,9 @@ export function createBridge(
         break;
       case 'read':
         if (typeof msg.at === 'string') handlers.onRead(msg.at);
+        break;
+      case 'notify':
+        if (typeof msg.text === 'string') handlers.onNotify(msg.text);
         break;
     }
   });

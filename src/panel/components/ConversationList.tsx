@@ -1,15 +1,6 @@
 import type { Conversation } from '../api/types';
-import { STR } from '../lib/strings';
+import { MEDIA_LABELS, STR } from '../lib/strings';
 import { formatListTime } from '../lib/time';
-
-const MEDIA_LABELS: Record<string, string> = {
-  image: STR.imageLabel,
-  sticker: STR.imageLabel,
-  audio: STR.audioLabel,
-  voice: STR.audioLabel,
-  video: STR.videoLabel,
-  document: STR.documentLabel,
-};
 
 function snippet(conversation: Conversation): string {
   const type = (conversation.last_message_type || '').toLowerCase();

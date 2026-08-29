@@ -58,7 +58,7 @@ Página wrapper mínima que o app carrega na WebView:
 
 | Peça | Onde roda | Código | Artefato |
 |---|---|---|---|
-| **Loader** | página host do cliente | `src/loader/` (zero deps, < 6 kB gz — o build falha se estourar) | `dist/v1/loader.js` (nome fixo) |
+| **Loader** | página host do cliente | `src/loader/` (zero deps, < 7 kB gz — o build falha se estourar) | `dist/v1/loader.js` (nome fixo) |
 | **Painel** | iframe `{origin}/v1/` | `src/panel/` (Preact + pusher-js) | `dist/v1/index.html` + assets hasheados |
 | **Protocolo** | postMessage entre os dois | `src/shared/protocol.ts` | — |
 
@@ -68,7 +68,7 @@ Comportamentos-chave:
 
 - **Nada é criado no servidor até a primeira mensagem** — o token só é cunhado no primeiro open.
 - **Visitante recorrente** (token existente): o iframe nasce escondido no load para manter o socket vivo — badge funciona sem abrir o painel.
-- **Não-lidas**: marco `lastread` persistido no host via loader; painel conta `from === 'company'` mais novas que o marco.
+- **Não-lidas**: marco `lastread` persistido no host via loader; painel conta `from === 'company'` mais novas que o marco. Resposta que chega **ao vivo** (socket ou refetch de reconexão) com o painel fechado ou a aba escondida toca um som curto (WebAudio, no painel — exige que a página já tenha tido um gesto do visitante), prefixa `(N) ` no título da aba do host e mostra a prévia no teaser ao lado da bolha; o título espelha o badge e zera ao abrir o painel.
 - **Config do canal** (`GET /v1/website-channel/config/{id}`): `name`, `widget_color` (accent com auto-contraste de texto por luminância), `welcome_message` (primeiro balão quando não há histórico) e — **leitor tolerante, campos em rollout no backend** — `theme` (`light` | `dark` | `auto`; ausente/null → light), `message_preview` (string; non-null → cartão teaser proativo ao lado da bolha fechada, dispensável e persistido; respostas ao vivo geram só badge), `display_mode` (`floating` | `fullscreen`; ausente → floating — ver "Embed em app"), `pre_chat_form` (`{fields:[...]}`; ausente/null → sem formulário — ver pré-chat abaixo) e `launcher_image` (URL de imagem quadrada que preenche a bolha fechada, recortada em círculo; ausente/null → ícone de balão; imagem que falha ao carregar cai no ícone).
 - **Pré-chat** (spec em [`pre-chat.md`](./pre-chat.md)): com `pre_chat_form` na config, visitante de **primeira conversa** (lista de conversas vazia) cuja identidade não cobre os `fields` exigidos vê um formulário no lugar do chat; ao enviar, os valores viram identidade (mesmo caminho do `setUser`) e saem no bloco `user` de todo envio. `setUser` parcial → o form pede só o que falta; `setUser` completo (mesmo tardio, com o form aberto) dispensa o form; e-mail com formato inválido não conta como coberto (a API o descartaria). Só o caminho de primeira conversa espera a config no landing — visitante recorrente não paga nada; erro de rede em config/conversas = **fail-open**, chat abre sem form. Durante o boot o composer segura o envio (não a digitação) para o gate não ser furado por quem digita rápido.
 - **Storage bloqueado** (Safari privado antigo, "block all cookies"): degrada para memória — widget funcional, sessão com vida útil da página.

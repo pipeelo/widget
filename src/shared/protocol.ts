@@ -16,7 +16,8 @@ export type PanelToLoader =
   | { __pipeelo: true; type: 'ready' }
   | { __pipeelo: true; type: 'close' }
   | { __pipeelo: true; type: 'unread'; count: number }
-  | { __pipeelo: true; type: 'read'; at: string }; // ISO 8601 da company message mais nova vista
+  | { __pipeelo: true; type: 'read'; at: string } // ISO 8601 da company message mais nova vista
+  | { __pipeelo: true; type: 'notify'; text: string };
 
 export type WidgetMessage = LoaderToPanel | PanelToLoader;
 

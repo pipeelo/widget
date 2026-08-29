@@ -28,6 +28,7 @@ export const STR = {
   imageLabel: 'Imagem',
   audioLabel: 'Áudio',
   videoLabel: 'Vídeo',
+  newMessage: 'Nova mensagem',
   newConversation: 'Nova conversa',
   loadMore: 'Ver atendimentos anteriores',
   conversationsError: 'Não foi possível carregar seus atendimentos.',
@@ -44,4 +45,13 @@ export const STR = {
   preChatRequired: 'Preencha este campo.',
   preChatEmailInvalid: 'Informe um e-mail válido.',
   preChatSubmit: 'Iniciar conversa',
+};
+
+export const MEDIA_LABELS: Record<string, string> = {
+  image: STR.imageLabel,
+  sticker: STR.imageLabel,
+  audio: STR.audioLabel,
+  voice: STR.audioLabel,
+  video: STR.videoLabel,
+  document: STR.documentLabel,
 };
