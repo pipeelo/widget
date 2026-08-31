@@ -1142,10 +1142,15 @@ a:focus-visible {
   height: 78px;
 }
 
+:root[data-density='mobile'] .msg-option {
+  min-height: 44px;
+}
+
 .msg-options {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-self: flex-end;
   gap: 6px;
   max-width: var(--pip-bubble-maxw);
   margin-top: 6px;
@@ -1156,9 +1161,8 @@ a:focus-visible {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  min-width: 132px;
   padding: 8px 16px;
-  border: 1px solid var(--pip-border);
+  border: 1px solid var(--pip-primary);
   border-radius: 999px;
   background: var(--pip-surface);
   color: var(--pip-primary);
@@ -1168,17 +1172,19 @@ a:focus-visible {
 
 @media (hover: hover) {
   .msg-option:hover:not(:disabled) {
-    background: var(--pip-bubble-company);
+    background: var(--pip-primary);
+    color: var(--pip-on-primary);
   }
 }
 
-.msg-option:disabled {
-  color: var(--pip-text-soft);
-  cursor: default;
+.msg-option:active:not(:disabled) {
+  background: var(--pip-primary);
+  color: var(--pip-on-primary);
 }
 
-.msg-option--chosen {
-  color: var(--pip-text);
+.msg-option:disabled {
+  border-color: var(--pip-border);
+  color: var(--pip-text-soft);
   cursor: default;
 }
 

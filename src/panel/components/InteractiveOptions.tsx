@@ -4,21 +4,6 @@ import { STR } from '../lib/strings';
 
 const MAX_BUTTONS = 3;
 
-function CheckIcon() {
-  return (
-    <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
-      <path
-        d="m5 12.5 4.5 4.5L19 7.5"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2.4"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-      />
-    </svg>
-  );
-}
-
 function MenuIcon() {
   return (
     <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true">
@@ -67,18 +52,7 @@ export function InteractiveOptions(props: {
     return () => document.removeEventListener('keydown', onKeyDown, true);
   }, [sheetOpen]);
 
-  if (props.selectedValue !== null) {
-    const chosen = props.items.find((item) => item.value === props.selectedValue);
-    if (!chosen) return null;
-    return (
-      <div class="msg-options">
-        <span class="msg-option msg-option--chosen">
-          <CheckIcon />
-          {chosen.title}
-        </span>
-      </div>
-    );
-  }
+  if (props.selectedValue !== null) return null;
 
   const disabled = !props.onSelect;
   const pick = (item: ApiItem) => {
