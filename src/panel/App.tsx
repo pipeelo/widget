@@ -21,7 +21,6 @@ export interface PanelParams {
   id: string;
   eid: string;
   lastread: string | null;
-  /** display_mode conhecido pelo loader na criação do iframe (hint pré-config). */
   mode: string | null;
 }
 
@@ -30,7 +29,6 @@ type View = 'boot' | 'form' | 'list' | 'thread';
 export function App({ params }: { params: PanelParams }) {
   const [config, setConfig] = useState<WidgetConfig | null>(null);
   const [configLoading, setConfigLoading] = useState(true);
-  // Painel aberto direto no browser (dev/standalone): trata como visível.
   const [open, setOpen] = useState(!isEmbedded());
   const [focusToken, setFocusToken] = useState(0);
   const [view, setView] = useState<View>('boot');
@@ -49,14 +47,11 @@ export function App({ params }: { params: PanelParams }) {
       if (isOpen) {
         setFocusToken((t) => t + 1);
       } else if (document.activeElement instanceof HTMLElement) {
-        // Escondido com o composer focado: sem blur, o teclado do iOS fica
-        // de pé sobre o site com o chat já fechado.
         document.activeElement.blur();
       }
     }, chat.setIdentity);
     if (!isEmbedded()) chat.notifyVisibility(true);
-    // chat.notifyVisibility e chat.setIdentity são estáveis (useCallback sem deps)
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   const landedRef = useRef(false);
   useEffect(() => {
@@ -107,7 +102,6 @@ export function App({ params }: { params: PanelParams }) {
         if (!cancelled) setConfig(cfg);
       })
       .catch(() => {
-        /* sem config: defaults da marca — o chat continua funcional */
       })
       .finally(() => {
         if (!cancelled) setConfigLoading(false);
@@ -117,7 +111,6 @@ export function App({ params }: { params: PanelParams }) {
     };
   }, [params.id]);
 
-  // Tema: light | dark | auto (auto segue o prefers-color-scheme, ao vivo).
   const [prefersDark, setPrefersDark] = useState(prefersDarkNow());
   useEffect(() => {
     if (typeof window.matchMedia !== 'function') return;
@@ -127,7 +120,7 @@ export function App({ params }: { params: PanelParams }) {
       query.addEventListener('change', onChange);
       return () => query.removeEventListener('change', onChange);
     }
-    query.addListener(onChange); // Safari < 14
+    query.addListener(onChange);
     return () => query.removeListener(onChange);
   }, []);
 
@@ -137,8 +130,6 @@ export function App({ params }: { params: PanelParams }) {
     document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
   }, [dark]);
 
-  // widget_color da config vira o accent (validado; fallback teal Pipeelo),
-  // com cor de texto por luminância.
   const accent = safeAccentColor(config?.widget_color);
   const onAccent = textColorOn(accent);
   useEffect(() => {
@@ -147,16 +138,10 @@ export function App({ params }: { params: PanelParams }) {
     style.setProperty('--pip-on-primary', onAccent);
   }, [accent, onAccent]);
 
-  // Modo tela cheia: sem chevron, sem Escape-fecha, sem rodapé. A config do
-  // canal decide; antes dela chegar vale o hint do fragment (evita chevron e
-  // rodapé piscando no boot em tela cheia).
   const fullscreen = config
     ? normalizeDisplayMode(config.display_mode) === 'fullscreen'
     : params.mode === 'fullscreen';
 
-  // Densidade mobile (escala de toque do styles.css): tela cheia OU ponteiro
-  // grosso. O main.tsx já seta antes do 1º paint; aqui reconcilia quando a
-  // config chega e acompanha mudança de ponteiro (tablet conversível).
   useEffect(() => {
     const apply = (coarse: boolean) => {
       if (fullscreen || coarse) {
@@ -176,7 +161,7 @@ export function App({ params }: { params: PanelParams }) {
       query.addEventListener('change', onChange);
       return () => query.removeEventListener('change', onChange);
     }
-    query.addListener(onChange); // Safari < 14
+    query.addListener(onChange);
     return () => query.removeListener(onChange);
   }, [fullscreen]);
 
@@ -189,16 +174,13 @@ export function App({ params }: { params: PanelParams }) {
     return () => document.removeEventListener('keydown', onKeyDown);
   }, [fullscreen]);
 
-  // Imagem com presigned expirada: renova via histórico, no máximo 1x/30s
-  // (evita loop de onError → refetch → onError).
   const lastMediaRefreshRef = useRef(0);
   const onMediaError = useCallback(() => {
     const now = Date.now();
     if (now - lastMediaRefreshRef.current < 30_000) return;
     lastMediaRefreshRef.current = now;
     chat.refreshHistory();
-    // chat.refreshHistory é estável (useCallback com [identifier, externalId])
-  }, [chat.refreshHistory]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [chat.refreshHistory]);
 
   const close = () => postToLoader({ __pipeelo: true, type: 'close' });
   const name = (config?.name ?? '').trim() || STR.brandFallback;

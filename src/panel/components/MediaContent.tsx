@@ -16,8 +16,6 @@ function DocIcon() {
   );
 }
 
-// media_url é presigned com validade de 1h: onError avisa o App, que renova
-// via refetch do histórico (upsert troca a URL e o elemento tenta de novo).
 export function MediaContent({
   message,
   onMediaError,

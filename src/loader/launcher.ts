@@ -1,6 +1,3 @@
-// Bolha flutuante na página host: botão + badge de não-lidas.
-// SVGs são literais constantes do bundle (único innerHTML permitido).
-
 const ICON_CHAT =
   '<svg class="pipeelo-ic pipeelo-ic-chat" viewBox="0 0 24 24" aria-hidden="true">' +
   '<path fill="currentColor" d="M12 3.6c-5 0-9 3.36-9 7.5 0 2.12 1.05 4.03 2.75 5.4.1 1-.3 2.12-1.23 3.12-.26.28-.06.73.32.7 1.9-.16 3.4-.9 4.4-1.7.87.25 1.8.38 2.76.38 5 0 9-3.35 9-7.5s-4-7.9-9-7.9Zm-4.2 8.9a1.2 1.2 0 1 1 0-2.4 1.2 1.2 0 0 1 0 2.4Zm4.2 0a1.2 1.2 0 1 1 0-2.4 1.2 1.2 0 0 1 0 2.4Zm4.2 0a1.2 1.2 0 1 1 0-2.4 1.2 1.2 0 0 1 0 2.4Z"/></svg>';
@@ -20,7 +17,6 @@ export interface Launcher {
 
 export function createLauncher(handlers: {
   onToggle(): void;
-  /** Intenção de abrir (hover/toque na bolha) — chega antes do click. */
   onIntent?(): void;
 }): Launcher {
   const button = document.createElement('button');
@@ -54,8 +50,6 @@ export function createLauncher(handlers: {
   button.addEventListener('click', () => handlers.onToggle());
   if (handlers.onIntent) {
     const intent = () => handlers.onIntent!();
-    // mouseenter aquece no hover (desktop); pointerdown chega ~100ms antes
-    // do click no toque. Idempotente do outro lado.
     button.addEventListener('mouseenter', intent, { passive: true });
     button.addEventListener('pointerdown', intent, { passive: true });
   }

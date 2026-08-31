@@ -1,8 +1,5 @@
 import type { ComponentChildren } from 'preact';
 
-// Linkifica só http(s) — a regex é ancorada no scheme, o que já bloqueia
-// javascript: e afins. Render por vnodes (nunca innerHTML): o texto da
-// conversa é dado hostil por definição.
 const URL_PATTERN = /https?:\/\/[^\s<>"']+[^\s<>"'.,;:!?)\]]/g;
 
 export function Linkify({ text }: { text: string }) {

@@ -1,10 +1,5 @@
-// Cartão teaser proativo (config.message_preview): aparece ao lado da bolha
-// fechada, estilo greeting da Intercom. Clique abre o chat; o X dispensa —
-// os dois persistem a dispensa via loader.
-
 export interface Teaser {
   show(name: string, text: string, dark: boolean): void;
-  /** Remove o cartão; `dismiss` persiste a dispensa via handler. */
   hide(dismiss: boolean): void;
 }
 

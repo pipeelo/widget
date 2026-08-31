@@ -1,9 +1,6 @@
 import type { MediaField } from '../api/types';
 import { STR } from './strings';
 
-// Espelho client-side da validação do servidor
-// (SendWebsiteChannelMessageRequest): um arquivo por mensagem, no campo
-// multipart com o nome do tipo. `max:` do Laravel é em KB.
 const KB = 1024;
 
 interface MediaRule {

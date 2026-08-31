@@ -90,7 +90,7 @@ async function parseSendResponse(res: Response): Promise<SendOutcome> {
       chatId: typeof body.chat_id === 'string' ? body.chat_id : null,
     };
   }
-  if (res.ok) return { messageId: null, chatId: null }; // 200 [] = descartado (cliente bloqueado)
+  if (res.ok) return { messageId: null, chatId: null };
   throw new Error(`send HTTP ${res.status}`);
 }
 
@@ -131,8 +131,6 @@ export async function sendFile(
       if (typeof value === 'string') form.append(`user[${key}]`, value);
     }
   }
-  // Sem header Content-Type: o browser gera o boundary do multipart.
-  // Sem timeout: upload grande legítimo pode demorar.
   const res = await fetch(endpoint('message', identifier), {
     method: 'POST',
     headers: { Accept: 'application/json' },

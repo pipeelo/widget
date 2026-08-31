@@ -2,12 +2,7 @@ import type { WidgetConfig } from '../shared/widget-config';
 
 export type ConfigResult = { ok: true; config: WidgetConfig } | { ok: false; notFound: boolean };
 
-// Config do canal para o lado host (cor da bolha, teaser, tema). A resposta
-// tem Cache-Control público de 5 min. 404 = identifier inexistente (o boot
-// desmonta o widget); erro de rede mantém os defaults da marca.
 export async function fetchWidgetConfig(apiUrl: string, identifier: string): Promise<ConfigResult> {
-  // A bolha espera esta resposta para decidir o modo — um fetch pendurado não
-  // pode deixar o site sem widget. O timeout aborta e cai nos defaults da marca.
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 10000);
   try {

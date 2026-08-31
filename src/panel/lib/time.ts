@@ -1,5 +1,3 @@
-// Datas/horas da timeline em pt-BR. `now` é injetável para teste.
-
 const timeFmt = new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit' });
 const dayFmt = new Intl.DateTimeFormat('pt-BR', { day: 'numeric', month: 'long' });
 const dayWithYearFmt = new Intl.DateTimeFormat('pt-BR', {
@@ -20,7 +18,6 @@ function startOfDay(date: Date): number {
   return copy.getTime();
 }
 
-/** Chave estável de agrupamento por dia local. */
 export function dayKey(iso: string): string {
   const date = new Date(iso);
   if (isNaN(date.getTime())) return 'invalid';

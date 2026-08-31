@@ -1,6 +1,3 @@
-// Tema do widget vindo da config do canal (leitor tolerante: o backend pode
-// ainda não enviar o campo — ausente/inválido resolve para 'light').
-
 export type WidgetTheme = 'light' | 'dark' | 'auto';
 
 export function normalizeTheme(value: unknown): WidgetTheme {

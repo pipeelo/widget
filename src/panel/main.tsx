@@ -3,8 +3,6 @@ import { App, type PanelParams } from './App';
 import { STR } from './lib/strings';
 import './styles.css';
 
-// Os parâmetros chegam no FRAGMENT da URL do iframe (#id=…&eid=…&lastread=…):
-// fragment não entra em request nenhum nem em Referer.
 function readHashParams(): URLSearchParams {
   const raw = location.hash.charAt(0) === '#' ? location.hash.slice(1) : location.hash;
   return new URLSearchParams(raw);
@@ -19,10 +17,6 @@ function parseParams(hash: URLSearchParams): PanelParams | null {
 
 const hash = readHashParams();
 
-// Densidade mobile ANTES do 1º paint (sem flash dos tamanhos desktop): tela
-// cheia declarada no fragment OU dispositivo de toque. Independe de id/eid —
-// a tela .fatal também renderiza na densidade certa. O App reconcilia depois
-// com a config do canal.
 if (
   hash.get('mode') === 'fullscreen' ||
   (typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches)
@@ -37,6 +31,5 @@ if (root) {
     params ? <App params={params} /> : <div class="fatal">{STR.startError}</div>,
     root
   );
-  // A UI real assumiu — a casca estática de boot do index.html sai de cena.
   document.getElementById('boot')?.remove();
 }

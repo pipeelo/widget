@@ -7,9 +7,6 @@
     <title>Pipeelo Chat</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <!-- Fonte fora do caminho crítico: um stylesheet de terceiro no head
-         segura o 1º paint da casca inteira em rede móvel; media=print +
-         onload troca para all sem bloquear (swap já evita FOIT). -->
     <link
       href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap"
       rel="stylesheet"
@@ -22,9 +19,6 @@
         rel="stylesheet"
       />
     </noscript>
-    <!-- Casca de boot: pinta antes do bundle chegar (o main.tsx remove após
-         o 1º render). Sem ela, o 1º open num visitante frio fica em branco
-         até o JS carregar — parece que o toque não funcionou. -->
     <style>
       #boot {
         position: fixed;

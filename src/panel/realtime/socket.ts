@@ -2,9 +2,6 @@ import Pusher from 'pusher-js';
 import type { ApiMessage, ChatClosedEvent } from '../api/types';
 import { ENV } from '../env';
 
-// Canal PÚBLICO do Soketi por identidade: a segurança é o nome inadivinhável
-// (uuid cunhado pelo widget) — sem authEndpoint, sem credenciais.
-
 export interface SocketHandle {
   destroy(): void;
 }
@@ -14,7 +11,6 @@ export function createSocket(opts: {
   externalId: string;
   onMessage(item: ApiMessage): void;
   onChatClosed(event: ChatClosedEvent): void;
-  /** current: estado novo; hadConnected: já esteve conectado antes (reconexão). */
   onState(current: string, hadConnected: boolean): void;
 }): SocketHandle {
   const pusher = new Pusher(ENV.soketiKey, {
@@ -22,7 +18,7 @@ export function createSocket(opts: {
     wsPort: ENV.soketiPort,
     wssPort: ENV.soketiPort,
     forceTLS: ENV.soketiTls,
-    cluster: ENV.soketiCluster, // exigido pela lib; o Soketi ignora
+    cluster: ENV.soketiCluster,
     enabledTransports: ['ws', 'wss'],
     disableStats: true,
   });
@@ -54,9 +50,6 @@ export function createSocket(opts: {
     if (states.current === 'connected') hadConnected = true;
   });
 
-  // Aba dormida: o throttling do browser derruba o socket em silêncio e o
-  // backoff da lib pode estar longo — ao voltar a ficar visível, reconecta
-  // na hora (o refetch de histórico cobre o que se perdeu no meio).
   const onVisibility = () => {
     if (document.visibilityState === 'visible' && pusher.connection.state !== 'connected') {
       pusher.connect();

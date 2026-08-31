@@ -1,5 +1,3 @@
-// Todas as strings visíveis do painel (pt-BR), centralizadas para facilitar
-// i18n futura junto com a config do canal.
 export const STR = {
   brandFallback: 'Chat',
   close: 'Fechar chat',

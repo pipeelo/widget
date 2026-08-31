@@ -61,7 +61,6 @@ export function useConversations(
         setNextCursor(page.next_cursor);
       })
       .catch(() => {
-        /* tocar de novo tenta de novo */
       })
       .finally(() => {
         loadingMoreRef.current = false;

@@ -31,7 +31,6 @@ export interface ChatController {
   retry(localId: string): void;
   loadOlder(): void;
   refreshHistory(): void;
-  /** Chamado pela ponte quando o loader abre/fecha o painel. */
   notifyVisibility(open: boolean): void;
   setIdentity(user: WidgetUser | null): void;
   setFormUser(user: WidgetUser): void;
@@ -129,7 +128,6 @@ export function useChat(
         })
         .catch(() => {
           if (request !== historyRequestRef.current) return;
-          // Falha no refetch de reconexão não derruba uma conversa já na tela.
           if (!stateRef.current.historyLoaded) setHistoryError(true);
         });
     },
@@ -157,9 +155,6 @@ export function useChat(
   refreshHistoryRef.current = refreshHistory;
 
   useEffect(() => {
-    // pusher-js é o maior peso do bundle: fica fora do caminho crítico do 1º
-    // paint (chunk próprio, carregado depois) — o composer responde antes. O
-    // histórico chega por fetch de qualquer forma; o socket só cobre o vivo.
     let socket: SocketHandle | null = null;
     let cancelled = false;
     void import('../realtime/socket').then(({ createSocket }) => {
@@ -183,8 +178,6 @@ export function useChat(
           if (current === 'connected') {
             setSocketDown(false);
             if (hadConnected) {
-              // Reconexão real: o histórico é a fonte de verdade — re-busca a
-              // página recente (debounce 2s, como o dashboard) e mescla.
               window.clearTimeout(refetchTimerRef.current);
               refetchTimerRef.current = window.setTimeout(() => {
                 refreshHistoryRef.current();
@@ -206,21 +199,14 @@ export function useChat(
       window.clearTimeout(staleTimerRef.current);
       socket?.destroy();
     };
-    // Handlers entram por ref: o socket não pode cair e reconectar a cada troca
-    // de atendimento.
   }, [identifier, externalId, trackUnread, markConversationsStale]);
 
-  // O visibilityState do documento do iframe segue a ABA do host (não o CSS
-  // que esconde o iframe) — cobre "painel aberto em aba background".
   useEffect(() => {
     const onVisibility = () => setSyncTick((t) => t + 1);
     document.addEventListener('visibilitychange', onVisibility);
     return () => document.removeEventListener('visibilitychange', onVisibility);
   }, []);
 
-  // Núcleo do não-lido: aberto+visível marca como lido (informa o loader,
-  // que persiste o marco no localStorage do host); senão, conta company
-  // messages mais novas que o marco e alimenta o badge.
   useEffect(() => {
     if (openRef.current && document.visibilityState === 'visible') {
       const newest = newestCompanyRef.current;
@@ -382,7 +368,6 @@ export function useChat(
         dispatch({ type: 'history/prependOlder', items: page.data, nextCursor: page.next_cursor });
       })
       .catch(() => {
-        /* rolar de novo tenta de novo */
       })
       .finally(() => {
         loadingOlderRef.current = false;

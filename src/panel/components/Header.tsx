@@ -1,11 +1,6 @@
 import { useRef } from 'preact/hooks';
 import { STR } from '../lib/strings';
 
-// Dois ícones no mesmo botão, alternados por CSS conforme a densidade: no
-// desktop flutuante o chevron "minimiza" o painel de volta para a bolinha no
-// canto; na densidade mobile o painel cobre a tela e não há bolinha à vista —
-// um X comunica melhor "fechar e voltar ao site". (Fullscreen não renderiza o
-// botão: showClose=false.)
 function ChevronIcon() {
   return (
     <svg
@@ -57,12 +52,6 @@ function BackIcon() {
   );
 }
 
-// Age no pointerdown, não no click: com o teclado aberto, o click perde a
-// corrida — o blur do textarea dispara o espelhamento do viewport, o header
-// se move entre o touchstart e o touchend e o tap "erra" o botão. O
-// preventDefault segura o foco no textarea (nenhum relayout no meio do
-// gesto); o teclado só cai quando o painel some. O onClick fica de fallback
-// para teclado físico/leitor de tela, com guarda contra disparo duplo.
 function usePointerAction(action: () => void) {
   const firedAtRef = useRef(0);
   return {
@@ -80,10 +69,8 @@ function usePointerAction(action: () => void) {
 
 export function Header(props: {
   name: string;
-  /** Sem widget_color configurada: usa o gradiente da marca Pipeelo. */
   brandGradient: boolean;
   loading: boolean;
-  /** Fullscreen: sem o chevron de fechar (o chat é a página). */
   showClose: boolean;
   onBack?: () => void;
   onClose(): void;

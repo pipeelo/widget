@@ -12,7 +12,7 @@ Widget de chat embutível estilo Intercom (canal `WEBSITE` da Pipeelo): bolha fl
 - `pre-chat.md` — spec do formulário pré-chat obrigatório (campo `pre_chat_form` na config do canal); **implementado no painel** (gate em `App.tsx` + `src/panel/lib/pre-chat.ts` + `PreChatForm`), backend em rollout
 - Contrato da API (fora deste repo): `Projects/api/docs/website-channel.md`
 
-Docs e comentários de código em pt-BR; commits em inglês, Conventional Commits (`feat:`/`fix:`/`perf:`/`chore:`).
+Docs em pt-BR; código sem comentários (o que precisa de explicação vira nome melhor ou entra num `.md`); commits em inglês, Conventional Commits (`feat:`/`fix:`/`perf:`/`chore:`).
 
 ## Comandos
 

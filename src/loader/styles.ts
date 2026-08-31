@@ -1,24 +1,6 @@
-// Todo o CSS do lado host como string (o build lib não emite .css). Regras:
-// prefixo pipeelo- em tudo, só system-ui (nenhuma fonte injetada no site do
-// cliente) e propriedades explícitas em cada elemento — defesa razoável
-// contra CSS agressivo do host (um !important do host ainda vence; aceito,
-// como em toda a indústria).
+const Z = 2147483000;
 
-const Z = 2147483000; // topo do range de 32 bits, padrão dos messengers
-
-// Tratamento mobile (chat cobre a tela): celular em pé OU qualquer viewport
-// baixa (celular deitado — o painel flutuante de 400px ficaria com o composer
-// inteiro debaixo do teclado). Compartilhada entre o CSS e os gates de JS
-// (trava de scroll, espelhamento do teclado) para nunca divergirem.
 export const MOBILE_MEDIA = '(max-width: 640px), (max-height: 500px)';
-
-// Sobre a pipeelo-lock (classe posta por JS com o chat cobrindo a tela):
-// overflow:hidden não segura o iOS — ao focar o composer, o Safari rola a
-// página do host por baixo do chat (scroll-into-view + rubber-band) e o site
-// aparece atrás. body position:fixed torna o documento não-rolável de
-// verdade; o único caminho que sobra para o teclado é deslocar a visual
-// viewport, que o frame.ts espelha no iframe. O index.ts guarda/restaura o
-// scroll ao travar/destravar.
 
 export const LOADER_CSS = `
 .pipeelo-launcher{position:fixed;z-index:${Z};right:20px;bottom:20px;width:52px;height:52px;margin:0;padding:0;border:0;border-radius:50%;background:linear-gradient(135deg,#01d5ac,#00b792);color:#fff;box-shadow:0 2px 8px rgba(0,0,0,.16),0 4px 20px rgba(1,213,172,.3);cursor:pointer;display:flex;align-items:center;justify-content:center;box-sizing:border-box;line-height:1;font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;-webkit-tap-highlight-color:transparent;touch-action:manipulation;transition:transform .16s ease,box-shadow .16s ease;letter-spacing:normal;text-transform:none}
@@ -38,8 +20,6 @@ export const LOADER_CSS = `
 @supports (height:100dvh){.pipeelo-frame{height:calc(100dvh - 104px)}}
 .pipeelo-frame.pipeelo-on{opacity:1;transform:none;visibility:visible;pointer-events:auto;transition:opacity .2s ease,transform .25s cubic-bezier(.21,1.02,.55,1.01)}
 
-/* Canal em tela cheia (display_mode): o frame é a viewport inteira — mesmo
-   layout da media query mobile, agora incondicional por classe no <html>. */
 html.pipeelo-fullscreen .pipeelo-frame{inset:0;width:100%;height:100%;max-width:none;max-height:none;border-radius:0;transform:none}
 html.pipeelo-fullscreen,html.pipeelo-fullscreen body{overflow:hidden!important}
 

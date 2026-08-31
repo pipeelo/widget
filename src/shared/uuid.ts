@@ -1,6 +1,3 @@
-// uuid v4 do token de sessão. `crypto.randomUUID` só existe em contexto
-// seguro — em site http o fallback cunha com `crypto.getRandomValues`
-// (disponível em qualquer contexto, mesma força).
 export function uuidV4(): string {
   const c: Crypto | undefined = typeof crypto !== 'undefined' ? crypto : undefined;
   if (c && typeof c.randomUUID === 'function') return c.randomUUID();
@@ -11,8 +8,8 @@ export function uuidV4(): string {
   } else {
     for (let i = 0; i < 16; i++) bytes[i] = Math.floor(Math.random() * 256);
   }
-  bytes[6] = (bytes[6]! & 0x0f) | 0x40; // versão 4
-  bytes[8] = (bytes[8]! & 0x3f) | 0x80; // variante RFC 4122
+  bytes[6] = (bytes[6]! & 0x0f) | 0x40;
+  bytes[8] = (bytes[8]! & 0x3f) | 0x80;
 
   let out = '';
   for (let i = 0; i < 16; i++) {

@@ -1,27 +1,23 @@
 import type { ApiMessage } from '../api/types';
 
-// Reducer puro da conversa — o coração testável do painel. Tudo é upsert
-// por id: histórico (fonte de verdade), eco do socket (entrega
-// at-least-once) e mensagens otimistas convergem sem duplicar.
-
 export type SendStatus = 'sending' | 'sent' | 'failed';
 export type MessageKind = 'text' | 'image' | 'audio' | 'video' | 'document';
 
 export interface ChatMessage {
-  id: string; // message_id do servidor OU uuid local enquanto otimista
+  id: string;
   kind: MessageKind;
   text: string | null;
   mediaUrl: string | null;
   from: 'company' | 'customer';
-  createdAt: string; // ISO 8601 (otimista usa o relógio local até o eco)
-  status: SendStatus; // vindas da API/socket são sempre 'sent'
-  pendingFile?: File; // só em otimista de mídia (preview local + retry)
+  createdAt: string;
+  status: SendStatus;
+  pendingFile?: File;
 }
 
 export interface ChatState {
   byId: Map<string, ChatMessage>;
-  order: string[]; // ids ordenados asc por (epoch(createdAt), id)
-  nextCursor: string | null; // cursor da página MAIS ANTIGA ainda não carregada
+  order: string[];
+  nextCursor: string | null;
   historyLoaded: boolean;
 }
 
@@ -32,8 +28,6 @@ export const initialChatState: ChatState = {
   historyLoaded: false,
 };
 
-// Tipos desconhecidos (voice, sticker, futuros): com mídia degradam para algo
-// utilizável; sem mídia, para texto.
 export function kindFromApi(item: ApiMessage): MessageKind {
   const type = (item.type || '').toLowerCase();
   if (type === 'image' || type === 'sticker') return 'image';
@@ -56,8 +50,6 @@ export function fromApi(item: ApiMessage): ChatMessage {
   };
 }
 
-// Epoch + desempate por id: blinda contra variação de formato/precisão do
-// ISO e mantém ordem estável para mensagens no mesmo instante.
 function compareMessages(a: ChatMessage, b: ChatMessage): number {
   const ta = Date.parse(a.createdAt) || 0;
   const tb = Date.parse(b.createdAt) || 0;
@@ -90,10 +82,6 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
     case 'conversation/reset':
       return { byId: new Map(), order: [], nextCursor: null, historyLoaded: action.loaded };
 
-    // 1ª página e refetch de reconexão. Upsert renova media_url expirada e
-    // preserva otimistas (nunca remove ids não mencionados). O cursor de
-    // páginas antigas só é adotado na primeira carga do atendimento — um
-    // refetch da página recente não pode rebobinar uma paginação já avançada.
     case 'history/replace': {
       const byId = new Map(state.byId);
       for (const item of action.items) byId.set(item.message_id, fromApi(item));
@@ -107,8 +95,6 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
       return rebuild(state, byId, { nextCursor: action.nextCursor });
     }
 
-    // Eco da própria mensagem (mesmo message_id do 201) e mensagens novas:
-    // o mesmo upsert idempotente cobre os dois.
     case 'socket/received': {
       const byId = new Map(state.byId);
       byId.set(action.item.message_id, fromApi(action.item));
@@ -121,9 +107,6 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
       return rebuild(state, byId);
     }
 
-    // Re-key localId -> messageId. Se o eco do socket chegou ANTES do 201,
-    // a versão do servidor (byId[messageId]) vence e a local é descartada.
-    // Caso descartado (200 []), messageId === localId: vira 'sent' no lugar.
     case 'send/confirmed': {
       const local = state.byId.get(action.localId);
       if (!local) return state;

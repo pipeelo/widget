@@ -1,9 +1,5 @@
 import { isWidgetMessage, type LoaderToPanel, type PanelToLoader } from '../shared/protocol';
 
-// Ponte postMessage do lado host. Só aceita mensagens vindas exatamente do
-// contentWindow do nosso iframe E do origin do painel; envia sempre com
-// targetOrigin estrito. Mensagens saem numa fila até o painel avisar 'ready'.
-
 export interface Bridge {
   send(msg: LoaderToPanel): void;
 }

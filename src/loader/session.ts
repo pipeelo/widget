@@ -15,9 +15,6 @@ function memoryStorage(): StorageLike {
   };
 }
 
-// localStorage pode lançar (storage bloqueado, modo privado antigo, quota).
-// Sonda com uma escrita real; qualquer falha cai para memória — widget
-// funcional, sessão com a vida útil da página.
 export function detectStorage(): StorageLike {
   try {
     const ls = window.localStorage;
@@ -31,9 +28,7 @@ export function detectStorage(): StorageLike {
 }
 
 export interface Session {
-  /** Token existente ou null — NÃO cunha (widget aberto não é customer). */
   getToken(): string | null;
-  /** Cunha no primeiro uso (chamado só quando o painel é criado). */
   ensureToken(): string;
   getLastReadAt(): string | null;
   setLastReadAt(at: string): void;
@@ -47,7 +42,6 @@ export function createSession(identifier: string, storage?: StorageLike): Sessio
   const lastReadKey = `pipeelo:lastread:${identifier}`;
   const teaserKey = `pipeelo:teaser:${identifier}`;
 
-  // Mesmo o localStorage sondado pode lançar depois (quota cheia).
   const get = (key: string): string | null => {
     try {
       return store.getItem(key);
@@ -59,7 +53,6 @@ export function createSession(identifier: string, storage?: StorageLike): Sessio
     try {
       store.setItem(key, value);
     } catch {
-      /* melhor sem persistência do que sem widget */
     }
   };
 

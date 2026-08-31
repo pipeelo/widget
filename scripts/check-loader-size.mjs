@@ -1,9 +1,3 @@
-// Guarda do orçamento do loader: o script roda em site de terceiro e precisa
-// continuar minúsculo. Falha o build se passar de 7 kB gzip ou se sobrar
-// `import.meta` (SyntaxError em script clássico) ou um global de lib.
-// Histórico do limite: 6144 até o setUser (identify) estourar por ~100 bytes
-// com o loader já a 6081 — subiu para 6400 em jul/2026; 7168 em ago/2026 com o
-// título da aba + teaser de resposta ao vivo (loader a 6345).
 import { readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 

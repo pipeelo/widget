@@ -29,7 +29,6 @@ function SendIcon() {
 export function Composer(props: {
   onSendText(text: string): void;
   onSendFile(field: MediaField, file: File): void;
-  /** Incrementado pelo App quando o painel abre — foca o campo (só desktop). */
   focusToken: number;
   disabled?: boolean;
 }) {
@@ -39,7 +38,6 @@ export function Composer(props: {
   const fileRef = useRef<HTMLInputElement>(null);
   const errorTimerRef = useRef<number | undefined>(undefined);
 
-  // Autofocus só onde não abre teclado virtual por cima da conversa.
   useEffect(() => {
     if (
       props.focusToken > 0 &&
@@ -52,9 +50,6 @@ export function Composer(props: {
   useEffect(() => {
     const el = areaRef.current;
     if (!el) return;
-    // O cap vem do CSS (--pip-input-maxh via max-height) — muda com a
-    // densidade mobile; o getComputedStyle é barato perto do reflow que o
-    // scrollHeight abaixo já força.
     const cap = parseFloat(getComputedStyle(el).maxHeight) || 100;
     el.style.height = 'auto';
     el.style.height = Math.min(el.scrollHeight, cap) + 'px';
@@ -76,9 +71,6 @@ export function Composer(props: {
     errorTimerRef.current = window.setTimeout(() => setFileError(null), 5000);
   };
 
-  // Botões do composer não roubam o foco do textarea (preventDefault no
-  // pointerdown): sem blur, o teclado não fecha nem move o layout no meio do
-  // tap — o click chega onde o dedo apontou e o teclado segue de pé ao enviar.
   const keepFocus = (event: Event) => event.preventDefault();
 
   const onFilePicked = (event: Event) => {

@@ -5,8 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Demo (dev) — site do cliente com o widget Pipeelo</title>
     <style>
-      /* Página deliberadamente "hostil": estilos globais agressivos para
-         provar que o launcher e o painel não são contaminados pelo host. */
       * { font-family: Georgia, 'Times New Roman', serif !important; }
       body { margin: 0; color: #333; background: #fffdf7; line-height: 1.7; }
       button { border-radius: 0; letter-spacing: 2px; }
@@ -73,18 +71,13 @@
     <footer>Loja Exemplo Ltda. — página de demonstração do widget Pipeelo (ambiente dev)</footer>
 
     <script>
-      // Versão DEV do snippet: carrega o entry TypeScript direto do vite dev
-      // server como module (currentScript é null em module — exercita o
-      // fallback por scan). A versão de produção do snippet está em
-      // public/demo.html e no README.
       (function (w, d) {
         var id = new URLSearchParams(location.search).get('id') || '';
         document.getElementById('current-id').textContent = id || '(nenhum — use o painel acima)';
         document.getElementById('id-input').value = id;
         if (!id) return;
         w.Pipeelo = w.Pipeelo || function () { (w.Pipeelo.q = w.Pipeelo.q || []).push(arguments) };
-        w.Pipeelo('toggle'); // testa a fila pré-carregamento a cada load
-        // testa o drain da fila com payload (setUser antes do loader carregar)
+        w.Pipeelo('toggle');
         w.Pipeelo('setUser', { name: 'Maria Fila', email: 'fila@dev.test' });
         var s = d.createElement('script');
         s.type = 'module';

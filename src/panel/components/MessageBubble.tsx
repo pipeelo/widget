@@ -6,7 +6,6 @@ import { MediaContent } from './MediaContent';
 
 export function MessageBubble(props: {
   message: ChatMessage;
-  /** Último do grupo (mesmo autor ≤ 5 min): ganha canto "rabinho", hora e avatar. */
   last: boolean;
   avatarInitial: string;
   onRetry(id: string): void;

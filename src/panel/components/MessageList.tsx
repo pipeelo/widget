@@ -67,14 +67,11 @@ export function MessageList(props: {
     if (!el) return;
     atBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 40;
     if (el.scrollTop < 60 && hasMore && !props.loadingOlder && state.historyLoaded) {
-      // âncora capturada ANTES do prepend — restaura a posição sem "pulo"
       prependAnchorRef.current = { height: el.scrollHeight, top: el.scrollTop };
       props.loadOlder();
     }
   };
 
-  // Âncora manual (scroll anchoring nativo desligado via overflow-anchor):
-  // prepend restaura a posição; senão, se estava no fundo, segue no fundo.
   useLayoutEffect(() => {
     const el = scrollerRef.current;
     if (!el) return;
@@ -87,7 +84,6 @@ export function MessageList(props: {
     }
   }, [state.order]);
 
-  // loadOlder falhou (sem mudança em order): descarta a âncora pendente.
   useEffect(() => {
     if (!props.loadingOlder) prependAnchorRef.current = null;
   }, [props.loadingOlder]);
@@ -99,15 +95,9 @@ export function MessageList(props: {
     atBottomRef.current = true;
   }, [props.open]);
 
-  // Teclado virtual (o loader encolhe o iframe via visualViewport; no Android
-  // o próprio layout encolhe) e autogrow do composer mudam a altura da lista:
-  // se estava no fundo, segue no fundo; rolado para cima, não pula.
   useEffect(() => {
     const el = scrollerRef.current;
     if (!el) return;
-    // Coalescido em rAF: durante a animação do teclado, resize da janela e
-    // ResizeObserver disparam juntos várias vezes — um scrollTop síncrono por
-    // evento viraria layout thrashing.
     let raf = 0;
     const repin = () => {
       if (raf) return;
