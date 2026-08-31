@@ -10,6 +10,7 @@ export function createSocket(opts: {
   identifier: string;
   externalId: string;
   onMessage(item: ApiMessage): void;
+  onTyping(chatId: string): void;
   onChatClosed(event: ChatClosedEvent): void;
   onState(current: string, hadConnected: boolean): void;
 }): SocketHandle {
@@ -33,6 +34,12 @@ export function createSocket(opts: {
     ) {
       opts.onMessage(payload as ApiMessage);
     }
+  });
+  channel.bind('website-channel.typing', (payload: unknown) => {
+    if (payload === null || typeof payload !== 'object') return;
+    const data = payload as { chat_id?: unknown };
+    if (typeof data.chat_id !== 'string') return;
+    opts.onTyping(data.chat_id);
   });
   channel.bind('website-channel.chat-closed', (payload: unknown) => {
     if (payload === null || typeof payload !== 'object') return;

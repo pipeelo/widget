@@ -98,16 +98,18 @@ export async function sendText(
   identifier: string,
   externalId: string,
   text: string,
-  user: WidgetUser | null
+  user: WidgetUser | null,
+  selectedValue?: string
 ): Promise<SendOutcome> {
+  const body: Record<string, unknown> = { external_id: externalId, text };
+  if (selectedValue) body.selected_value = selectedValue;
+  if (user) body.user = user;
   const t = withTimeout(20000);
   try {
     const res = await fetch(endpoint('message', identifier), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify(
-        user ? { external_id: externalId, text, user } : { external_id: externalId, text }
-      ),
+      body: JSON.stringify(body),
       signal: t.signal,
     });
     return await parseSendResponse(res);

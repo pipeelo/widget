@@ -238,6 +238,7 @@ export function App({ params }: { params: PanelParams }) {
             key={chat.activeChatId ?? 'new'}
             state={chat.state}
             open={open}
+            typing={chat.typing && !readOnly}
             avatarInitial={(name.charAt(0) || 'P').toUpperCase()}
             welcome={readOnly ? null : config?.welcome_message ?? null}
             historyError={chat.historyError}
@@ -246,6 +247,7 @@ export function App({ params }: { params: PanelParams }) {
             loadOlder={chat.loadOlder}
             onRetry={chat.retry}
             onMediaError={onMediaError}
+            onSelectOption={readOnly ? undefined : chat.selectOption}
           />
           {readOnly ? (
             <ClosedNotice

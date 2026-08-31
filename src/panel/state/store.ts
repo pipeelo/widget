@@ -1,13 +1,29 @@
-import type { ApiMessage } from '../api/types';
+import type { ApiItem, ApiMessage } from '../api/types';
 
 export type SendStatus = 'sending' | 'sent' | 'failed';
-export type MessageKind = 'text' | 'image' | 'audio' | 'video' | 'document';
+export type MessageKind =
+  | 'text'
+  | 'image'
+  | 'audio'
+  | 'video'
+  | 'document'
+  | 'interactive'
+  | 'order_details';
+
+export interface PixDetails {
+  productName: string | null;
+  code: string;
+  value: number | null;
+}
 
 export interface ChatMessage {
   id: string;
   kind: MessageKind;
   text: string | null;
   mediaUrl: string | null;
+  items: ApiItem[] | null;
+  selectedValue: string | null;
+  pix: PixDetails | null;
   from: 'company' | 'customer';
   createdAt: string;
   status: SendStatus;
@@ -34,8 +50,32 @@ export function kindFromApi(item: ApiMessage): MessageKind {
   if (type === 'audio' || type === 'voice') return 'audio';
   if (type === 'video') return 'video';
   if (type === 'document') return 'document';
+  if (type === 'interactive') return 'interactive';
+  if (type === 'order_details') return 'order_details';
   if (type === 'text') return 'text';
   return item.media_url ? 'document' : 'text';
+}
+
+function itemsFromApi(raw: ApiMessage['items']): ApiItem[] | null {
+  if (!Array.isArray(raw)) return null;
+  const items: ApiItem[] = [];
+  for (const entry of raw) {
+    if (!entry || typeof entry !== 'object') continue;
+    const { title, value, description } = entry;
+    if (typeof title !== 'string' || typeof value !== 'string' || !title || !value) continue;
+    items.push({ title, value, description: typeof description === 'string' ? description : null });
+  }
+  return items.length > 0 ? items : null;
+}
+
+function pixFromApi(item: ApiMessage): PixDetails | null {
+  if ((item.type || '').toLowerCase() !== 'order_details') return null;
+  if (typeof item.code !== 'string' || !item.code) return null;
+  return {
+    productName: typeof item.product_name === 'string' && item.product_name ? item.product_name : null,
+    code: item.code,
+    value: typeof item.value === 'number' && Number.isInteger(item.value) ? item.value : null,
+  };
 }
 
 export function fromApi(item: ApiMessage): ChatMessage {
@@ -44,6 +84,9 @@ export function fromApi(item: ApiMessage): ChatMessage {
     kind: kindFromApi(item),
     text: item.text ?? null,
     mediaUrl: item.media_url ?? null,
+    items: itemsFromApi(item.items),
+    selectedValue: typeof item.selected_value === 'string' ? item.selected_value : null,
+    pix: pixFromApi(item),
     from: item.from === 'company' ? 'company' : 'customer',
     createdAt: item.created_at,
     status: 'sent',
@@ -75,6 +118,7 @@ export type ChatAction =
   | { type: 'send/confirmed'; localId: string; messageId: string }
   | { type: 'send/failed'; localId: string }
   | { type: 'send/retry'; localId: string }
+  | { type: 'interactive/select'; messageId: string; value: string }
   | { type: 'socket/received'; item: ApiMessage };
 
 export function chatReducer(state: ChatState, action: ChatAction): ChatState {
@@ -130,6 +174,14 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
       if (!local || local.status !== 'failed') return state;
       const byId = new Map(state.byId);
       byId.set(action.localId, { ...local, status: 'sending' });
+      return rebuild(state, byId);
+    }
+
+    case 'interactive/select': {
+      const message = state.byId.get(action.messageId);
+      if (!message || message.kind !== 'interactive' || message.selectedValue !== null) return state;
+      const byId = new Map(state.byId);
+      byId.set(action.messageId, { ...message, selectedValue: action.value });
       return rebuild(state, byId);
     }
   }

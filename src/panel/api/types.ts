@@ -2,12 +2,23 @@ export type { WidgetConfig } from '../../shared/widget-config';
 
 export type MessageFrom = 'company' | 'customer';
 
+export interface ApiItem {
+  title: string;
+  value: string;
+  description?: string | null;
+}
+
 export interface ApiMessage {
   message_id: string;
   chat_id: string;
   external_id: string;
   type: string;
   text: string | null;
+  items?: ApiItem[] | null;
+  selected_value?: string | null;
+  product_name?: string | null;
+  code?: string | null;
+  value?: number | null;
   media_url: string | null;
   from: MessageFrom;
   created_at: string;

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useReducer, useRef, useState } from 'preact/hoo
 import type { WidgetUser } from '../../shared/protocol';
 import { uuidV4 } from '../../shared/uuid';
 import { fetchHistory, sendFile, sendText } from '../api/client';
-import type { ApiMessage, Conversation, MediaField, SendOutcome } from '../api/types';
+import type { ApiItem, ApiMessage, Conversation, MediaField, SendOutcome } from '../api/types';
 import { postToLoader } from '../bridge';
 import { chime, previewOf } from '../lib/attention';
 import { composeIdentity } from '../lib/pre-chat';
@@ -11,6 +11,7 @@ import { chatReducer, initialChatState, type ChatState } from './store';
 
 const STALE_DEBOUNCE_MS = 1000;
 const RECONNECT_REFETCH_MS = 2000;
+const TYPING_TTL_MS = 8000;
 
 export interface ChatHandlers {
   conversations: Conversation[];
@@ -22,12 +23,14 @@ export interface ChatController {
   state: ChatState;
   activeChatId: string | null;
   socketDown: boolean;
+  typing: boolean;
   historyError: boolean;
   loadingOlder: boolean;
   identity: WidgetUser | null;
   openConversation(chatId: string | null): void;
   sendTextMessage(text: string): void;
   sendFileMessage(field: MediaField, file: File): void;
+  selectOption(messageId: string, item: ApiItem): void;
   retry(localId: string): void;
   loadOlder(): void;
   refreshHistory(): void;
@@ -47,6 +50,7 @@ export function useChat(
   const [socketDown, setSocketDown] = useState(false);
   const [historyError, setHistoryError] = useState(false);
   const [loadingOlder, setLoadingOlder] = useState(false);
+  const [typing, setTyping] = useState(false);
   const [syncTick, setSyncTick] = useState(0);
 
   const stateRef = useRef(state);
@@ -61,6 +65,7 @@ export function useChat(
   const historyRequestRef = useRef(0);
   const staleTimerRef = useRef<number | undefined>(undefined);
   const refetchTimerRef = useRef<number | undefined>(undefined);
+  const typingTimerRef = useRef<number | undefined>(undefined);
 
   const hostUserRef = useRef<WidgetUser | null>(null);
   const formUserRef = useRef<WidgetUser | null>(null);
@@ -111,6 +116,11 @@ export function useChat(
     );
   }, []);
 
+  const clearTyping = useCallback(() => {
+    window.clearTimeout(typingTimerRef.current);
+    setTyping(false);
+  }, []);
+
   const loadHistory = useCallback(
     (chatId: string, adoptCursor: boolean) => {
       const request = ++historyRequestRef.current;
@@ -138,12 +148,13 @@ export function useChat(
     (chatId: string | null) => {
       historyRequestRef.current++;
       activeChatIdRef.current = chatId;
+      clearTyping();
       setActiveChatId(chatId);
       setHistoryError(false);
       dispatch({ type: 'conversation/reset', loaded: chatId === null });
       if (chatId) loadHistory(chatId, true);
     },
-    [loadHistory]
+    [loadHistory, clearTyping]
   );
 
   const refreshHistory = useCallback(() => {
@@ -165,12 +176,20 @@ export function useChat(
         onMessage: (item) => {
           trackUnread([item], true);
           if (item.chat_id === activeChatIdRef.current) {
+            if (item.from === 'company') clearTyping();
             dispatch({ type: 'socket/received', item });
           } else {
             markConversationsStale();
           }
         },
+        onTyping: (chatId) => {
+          if (chatId !== activeChatIdRef.current) return;
+          setTyping(true);
+          window.clearTimeout(typingTimerRef.current);
+          typingTimerRef.current = window.setTimeout(() => setTyping(false), TYPING_TTL_MS);
+        },
         onChatClosed: (event) => {
+          if (event.chat_id === activeChatIdRef.current) clearTyping();
           handlersRef.current.onChatClosed(event.chat_id, event.ended_at);
           markConversationsStale();
         },
@@ -197,9 +216,10 @@ export function useChat(
       cancelled = true;
       window.clearTimeout(refetchTimerRef.current);
       window.clearTimeout(staleTimerRef.current);
+      window.clearTimeout(typingTimerRef.current);
       socket?.destroy();
     };
-  }, [identifier, externalId, trackUnread, markConversationsStale]);
+  }, [identifier, externalId, trackUnread, markConversationsStale, clearTyping]);
 
   useEffect(() => {
     const onVisibility = () => setSyncTick((t) => t + 1);
@@ -300,6 +320,9 @@ export function useChat(
           kind: 'text',
           text,
           mediaUrl: null,
+          items: null,
+          selectedValue: null,
+          pix: null,
           from: 'customer',
           createdAt: new Date().toISOString(),
           status: 'sending',
@@ -326,6 +349,9 @@ export function useChat(
           kind: field,
           text: null,
           mediaUrl: previewUrl,
+          items: null,
+          selectedValue: null,
+          pix: null,
           from: 'customer',
           createdAt: new Date().toISOString(),
           status: 'sending',
@@ -337,13 +363,41 @@ export function useChat(
     [identifier, externalId, deliver]
   );
 
+  const selectOption = useCallback(
+    (messageId: string, item: ApiItem) => {
+      const message = stateRef.current.byId.get(messageId);
+      if (!message || message.kind !== 'interactive' || message.selectedValue !== null) return;
+      dispatch({ type: 'interactive/select', messageId, value: item.value });
+      const localId = uuidV4();
+      dispatch({
+        type: 'send/optimistic',
+        message: {
+          id: localId,
+          kind: 'text',
+          text: item.title,
+          mediaUrl: null,
+          items: null,
+          selectedValue: item.value,
+          pix: null,
+          from: 'customer',
+          createdAt: new Date().toISOString(),
+          status: 'sending',
+        },
+      });
+      deliver(localId, () => sendText(identifier, externalId, item.title, identityRef.current, item.value));
+    },
+    [identifier, externalId, deliver]
+  );
+
   const retry = useCallback(
     (localId: string) => {
       const message = stateRef.current.byId.get(localId);
       if (!message || message.status !== 'failed') return;
       dispatch({ type: 'send/retry', localId });
       if (message.kind === 'text') {
-        deliver(localId, () => sendText(identifier, externalId, message.text ?? '', identityRef.current));
+        deliver(localId, () =>
+          sendText(identifier, externalId, message.text ?? '', identityRef.current, message.selectedValue ?? undefined)
+        );
       } else if (message.pendingFile) {
         deliver(localId, () =>
           sendFile(identifier, externalId, message.kind as MediaField, message.pendingFile!, identityRef.current)
@@ -379,12 +433,14 @@ export function useChat(
     state,
     activeChatId,
     socketDown,
+    typing,
     historyError,
     loadingOlder,
     identity,
     openConversation,
     sendTextMessage,
     sendFileMessage,
+    selectOption,
     retry,
     loadOlder,
     refreshHistory,

@@ -43,6 +43,12 @@ export const STR = {
   preChatRequired: 'Preencha este campo.',
   preChatEmailInvalid: 'Informe um e-mail válido.',
   preChatSubmit: 'Iniciar conversa',
+  typing: 'digitando…',
+  viewOptions: 'Ver opções',
+  closeOptions: 'Fechar opções',
+  copyCode: 'Copiar código',
+  codeCopied: 'Código copiado',
+  pixTitle: 'Pagamento PIX',
 };
 
 export const MEDIA_LABELS: Record<string, string> = {

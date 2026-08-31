@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef } from 'preact/hooks';
+import type { ApiItem } from '../api/types';
 import { STR } from '../lib/strings';
 import { dayKey, formatDayLabel } from '../lib/time';
 import type { ChatMessage, ChatState } from '../state/store';
@@ -47,6 +48,7 @@ function buildSections(state: ChatState): DaySection[] {
 export function MessageList(props: {
   state: ChatState;
   open: boolean;
+  typing: boolean;
   avatarInitial: string;
   welcome: string | null;
   historyError: boolean;
@@ -55,6 +57,7 @@ export function MessageList(props: {
   loadOlder(): void;
   onRetry(id: string): void;
   onMediaError(): void;
+  onSelectOption?(messageId: string, item: ApiItem): void;
 }) {
   const { state } = props;
   const scrollerRef = useRef<HTMLDivElement>(null);
@@ -82,7 +85,7 @@ export function MessageList(props: {
     } else if (atBottomRef.current) {
       el.scrollTop = el.scrollHeight;
     }
-  }, [state.order]);
+  }, [state.order, props.typing]);
 
   useEffect(() => {
     if (!props.loadingOlder) prependAnchorRef.current = null;
@@ -174,10 +177,28 @@ export function MessageList(props: {
               avatarInitial={props.avatarInitial}
               onRetry={props.onRetry}
               onMediaError={props.onMediaError}
+              onSelectOption={props.onSelectOption}
             />
           ))}
         </div>
       ))}
+
+      {props.typing && (
+        <div class="day-section">
+          <div class="msg-row msg-row--theirs msg-row--last">
+            <div class="msg-bubble msg-bubble--typing" role="status" aria-label={STR.typing}>
+              <span class="msg-avatar" aria-hidden="true">
+                {props.avatarInitial}
+              </span>
+              <span class="typing-dots" aria-hidden="true">
+                <span />
+                <span />
+                <span />
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
