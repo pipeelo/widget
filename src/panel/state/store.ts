@@ -105,6 +105,24 @@ function rebuild(state: ChatState, byId: Map<string, ChatMessage>, patch?: Parti
   return { ...state, ...patch, byId, order };
 }
 
+function inFlightTwinOf(byId: Map<string, ChatMessage>, item: ApiMessage): string | null {
+  if (item.from !== 'customer' || byId.has(item.message_id)) return null;
+  const kind = kindFromApi(item);
+  for (const message of byId.values()) {
+    if (message.from !== 'customer' || message.status !== 'sending') continue;
+    if (message.kind !== kind) continue;
+    if (kind === 'text' && message.text !== (item.text ?? null)) continue;
+    return message.id;
+  }
+  return null;
+}
+
+function absorb(byId: Map<string, ChatMessage>, item: ApiMessage): void {
+  const twin = inFlightTwinOf(byId, item);
+  if (twin) byId.delete(twin);
+  byId.set(item.message_id, fromApi(item));
+}
+
 export type ChatAction =
   | { type: 'conversation/reset'; loaded: boolean }
   | {
@@ -128,7 +146,7 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
 
     case 'history/replace': {
       const byId = new Map(state.byId);
-      for (const item of action.items) byId.set(item.message_id, fromApi(item));
+      for (const item of action.items) absorb(byId, item);
       const nextCursor = action.adoptCursor ? action.nextCursor : state.nextCursor;
       return rebuild(state, byId, { nextCursor, historyLoaded: true });
     }
@@ -141,7 +159,7 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
 
     case 'socket/received': {
       const byId = new Map(state.byId);
-      byId.set(action.item.message_id, fromApi(action.item));
+      absorb(byId, action.item);
       return rebuild(state, byId);
     }
 

@@ -62,7 +62,7 @@ Página wrapper mínima que o app carrega na WebView:
 | **Painel** | iframe `{origin}/v1/` | `src/panel/` (Preact + pusher-js) | `dist/v1/index.html` + assets hasheados |
 | **Protocolo** | postMessage entre os dois | `src/shared/protocol.ts` | — |
 
-O loader: cunha/guarda o **token de sessão** (uuid v4) no `localStorage` da página host (padrão da indústria — storage de iframe de terceiro é efêmero no Safari), renderiza a bolha, injeta o iframe (parâmetros via **fragment**, que não vaza em Referer), faz a ponte de abrir/fechar, badge de não-lidas e cartão teaser. O painel: config, histórico por cursor, socket Soketi (canal público `website-channel.{identifier}.{external_id}`, eventos `website-channel.message`, `.typing` e `.chat-closed`), envio otimista com reconciliação por `message_id` (dedupe do eco at-least-once) e refetch do histórico na reconexão (histórico é a fonte de verdade).
+O loader: cunha/guarda o **token de sessão** (uuid v4) no `localStorage` da página host (padrão da indústria — storage de iframe de terceiro é efêmero no Safari), renderiza a bolha, injeta o iframe (parâmetros via **fragment**, que não vaza em Referer), faz a ponte de abrir/fechar, badge de não-lidas e cartão teaser. O painel: config, histórico por cursor, socket Soketi (canal público `website-channel.{identifier}.{external_id}`, eventos `website-channel.message`, `.typing` e `.chat-closed`), envio otimista com reconciliação por `message_id` — e, enquanto o POST não respondeu, o item do servidor absorve o otimista gêmeo por conteúdo (dedupe do eco at-least-once, que chega antes da resposta sempre que o caminho de volta é lento) — e refetch do histórico na reconexão (histórico é a fonte de verdade).
 
 Comportamentos-chave:
 
