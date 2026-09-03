@@ -25,7 +25,7 @@ Pipeelo('toggle'); // alterna
 
 ## Embed em app (tela cheia)
 
-Canal com `display_mode: 'fullscreen'` na config: o chat **é** a página — o loader abre o painel no boot ocupando a viewport inteira, sem bolha, sem teaser e sem fechar (`Pipeelo('close')` vira no-op). Feito para WebView de app nativo (chat in-app). O painel aplica a **densidade mobile** (texto 16px, alvos de toque de 44px, safe areas de notch/home indicator) — a mesma usada em qualquer dispositivo de toque.
+Canal com `display_mode: 'fullscreen'` na config: o chat **é** a página — o loader abre o painel no boot ocupando a viewport inteira, sem bolha, sem teaser e sem fechar (`Pipeelo('close')` vira no-op). Feito para WebView de app nativo (chat in-app). O painel aplica a **densidade mobile** (texto 16px, alvos de toque de 44–48px, safe areas de notch/home indicator) — a mesma usada em qualquer dispositivo de toque.
 
 Página wrapper mínima que o app carrega na WebView:
 
@@ -78,7 +78,7 @@ Comportamentos-chave:
 - **Config do canal** (`GET /v1/website-channel/config/{id}`): `name`, `widget_color` (accent com auto-contraste de texto por luminância), `welcome_message` (primeiro balão quando não há histórico) e — **leitor tolerante, campos em rollout no backend** — `theme` (`light` | `dark` | `auto`; ausente/null → light), `message_preview` (string; non-null → cartão teaser proativo ao lado da bolha fechada, dispensável e persistido; respostas ao vivo geram só badge), `display_mode` (`floating` | `fullscreen`; ausente → floating — ver "Embed em app"), `pre_chat_form` (`{fields:[...]}`; ausente/null → sem formulário — ver pré-chat abaixo) e `launcher_image` (URL de imagem quadrada que preenche a bolha fechada, recortada em círculo; ausente/null → ícone de balão; imagem que falha ao carregar cai no ícone).
 - **Pré-chat** (spec em [`pre-chat.md`](./pre-chat.md)): com `pre_chat_form` na config, visitante de **primeira conversa** (lista de conversas vazia) cuja identidade não cobre os `fields` exigidos vê um formulário no lugar do chat; ao enviar, os valores viram identidade (mesmo caminho do `setUser`) e saem no bloco `user` de todo envio. `setUser` parcial → o form pede só o que falta; `setUser` completo (mesmo tardio, com o form aberto) dispensa o form; e-mail com formato inválido não conta como coberto (a API o descartaria). Só o caminho de primeira conversa espera a config no landing — visitante recorrente não paga nada; erro de rede em config/conversas = **fail-open**, chat abre sem form. Durante o boot o composer segura o envio (não a digitação) para o gate não ser furado por quem digita rápido.
 - **Storage bloqueado** (Safari privado antigo, "block all cookies"): degrada para memória — widget funcional, sessão com vida útil da página.
-- **Mobile** (≤ 640 px): painel fullscreen, teclado iOS compensado via `visualViewport`, scroll do host travado enquanto aberto. Em dispositivo de toque (e sempre na tela cheia) o painel aplica a **densidade mobile** — `data-density="mobile"` no `<html>` do iframe, tokens de tamanho no `styles.css`: texto/input 16px, alvos de 44px, safe areas.
+- **Mobile** (≤ 640 px): painel fullscreen, teclado iOS compensado via `visualViewport`, scroll do host travado enquanto aberto. Em dispositivo de toque (e sempre na tela cheia) o painel aplica a **densidade mobile** — `data-density="mobile"` no `<html>` do iframe, tokens de tamanho no `styles.css`: texto/input 16px, alvos de 44–48px, safe areas.
 
 ## Rodando
 

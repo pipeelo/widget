@@ -30,7 +30,7 @@
   --pip-fs-banner: 12px;
   --pip-fs-doc-open: 12px;
   --pip-fs-composer-error: 12.5px;
-  --pip-ctl: 34px;
+  --pip-ctl: 40px;
   --pip-close: 32px;
   --pip-icon-attach: 19px;
   --pip-icon-send: 17px;
@@ -60,8 +60,8 @@
   --pip-doc-min-w: 180px;
   --pip-doc-name-max: 170px;
   --pip-list-pad-top: 14px;
-  --pip-input-pad-y: 6px;
-  --pip-input-maxh: 100px;
+  --pip-input-pad-y: 9.5px;
+  --pip-input-maxh: 108px;
   --pip-composer-pad-y: 10px;
   --pip-composer-gap: 6px;
   --pip-skeleton-h: 38px;
@@ -1288,7 +1288,7 @@ a:focus-visible {
   --pip-fs-banner: 13px;
   --pip-fs-doc-open: 13px;
   --pip-fs-composer-error: 14px;
-  --pip-ctl: 44px;
+  --pip-ctl: 48px;
   --pip-close: 44px;
   --pip-icon-attach: 23px;
   --pip-icon-send: 21px;
@@ -1316,8 +1316,8 @@ a:focus-visible {
   --pip-doc-min-w: 200px;
   --pip-doc-name-max: 200px;
   --pip-list-pad-top: 16px;
-  --pip-input-pad-y: 10px;
-  --pip-input-maxh: 140px;
+  --pip-input-pad-y: 12px;
+  --pip-input-maxh: 144px;
   --pip-composer-pad-y: 12px;
   --pip-composer-gap: 8px;
   --pip-skeleton-h: 44px;
