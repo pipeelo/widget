@@ -12,6 +12,7 @@ import { Footer } from './components/Footer';
 import { Header } from './components/Header';
 import { MessageList } from './components/MessageList';
 import { PreChatForm } from './components/PreChatForm';
+import { mineBubbleColor } from './lib/bubble-color';
 import { missingPreChatFields } from './lib/pre-chat';
 import { STR } from './lib/strings';
 import { useChat } from './state/useChat';
@@ -132,11 +133,15 @@ export function App({ params }: { params: PanelParams }) {
 
   const accent = safeAccentColor(config?.widget_color);
   const onAccent = textColorOn(accent);
+  const bubbleMine = mineBubbleColor(accent, dark);
+  const onBubbleMine = textColorOn(bubbleMine);
   useEffect(() => {
     const style = document.documentElement.style;
     style.setProperty('--pip-primary', accent);
     style.setProperty('--pip-on-primary', onAccent);
-  }, [accent, onAccent]);
+    style.setProperty('--pip-bubble-mine', bubbleMine);
+    style.setProperty('--pip-on-bubble-mine', onBubbleMine);
+  }, [accent, onAccent, bubbleMine, onBubbleMine]);
 
   const fullscreen = config
     ? normalizeDisplayMode(config.display_mode) === 'fullscreen'
@@ -239,7 +244,6 @@ export function App({ params }: { params: PanelParams }) {
             state={chat.state}
             open={open}
             typing={chat.typing && !readOnly}
-            avatarInitial={(name.charAt(0) || 'P').toUpperCase()}
             welcome={readOnly ? null : config?.welcome_message ?? null}
             historyError={chat.historyError}
             loadingOlder={chat.loadingOlder}
@@ -261,6 +265,7 @@ export function App({ params }: { params: PanelParams }) {
               onSendText={chat.sendTextMessage}
               onSendFile={chat.sendFileMessage}
               focusToken={focusToken}
+              open={open}
               disabled={
                 view === 'boot' &&
                 (configLoading || missingPreChatFields(config, chat.identity).length > 0)

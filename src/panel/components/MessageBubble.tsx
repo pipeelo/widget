@@ -7,10 +7,40 @@ import { Linkify } from './Linkify';
 import { MediaContent } from './MediaContent';
 import { PixCard } from './PixCard';
 
+function CheckIcon() {
+  return (
+    <svg class="msg-tick" role="img" aria-label={STR.sent} viewBox="0 0 24 24">
+      <path
+        d="m4.5 12.5 4.5 4.5L19.5 6.5"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2.4"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      />
+    </svg>
+  );
+}
+
+function ClockIcon() {
+  return (
+    <svg class="msg-tick" role="img" aria-label={STR.sending} viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2" />
+      <path
+        d="M12 7.5V12l3 1.8"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+      />
+    </svg>
+  );
+}
+
 export function MessageBubble(props: {
   message: ChatMessage;
+  first: boolean;
   last: boolean;
-  avatarInitial: string;
   onRetry(id: string): void;
   onMediaError(): void;
   onSelectOption?(messageId: string, item: ApiItem): void;
@@ -19,21 +49,24 @@ export function MessageBubble(props: {
   const mine = message.from === 'customer';
   const textual =
     message.kind === 'text' || message.kind === 'interactive' || message.kind === 'order_details';
+  const hasMedia = Boolean(message.mediaUrl);
+  const framed = hasMedia && (message.kind === 'image' || message.kind === 'video');
+  const overlay = framed && message.kind === 'image';
   const rowClass =
-    'msg-row ' + (mine ? 'msg-row--mine' : 'msg-row--theirs') + (props.last ? ' msg-row--last' : '');
+    'msg-row ' +
+    (mine ? 'msg-row--mine' : 'msg-row--theirs') +
+    (props.first ? ' msg-row--first' : '') +
+    (props.last ? ' msg-row--last' : '');
   const bubbleClass =
     'msg-bubble' +
-    (!textual ? ' msg-bubble--media' : '') +
+    (textual ? '' : framed ? ' msg-bubble--frame' : ' msg-bubble--panel') +
     (message.status !== 'sent' ? ' is-pending' : '');
+  const metaClass =
+    'msg-meta' + (overlay ? ' msg-meta--over' : !textual || message.pix ? ' msg-meta--block' : '');
 
   return (
     <div class={rowClass}>
       <div class={bubbleClass}>
-        {!mine && props.last && (
-          <span class="msg-avatar" aria-hidden="true">
-            {props.avatarInitial}
-          </span>
-        )}
         {textual ? (
           <>
             <Linkify text={message.text ?? ''} />
@@ -42,9 +75,12 @@ export function MessageBubble(props: {
         ) : (
           <MediaContent message={message} onMediaError={props.onMediaError} />
         )}
-        {message.status === 'sending' && !textual && (
-          <span class="msg-spinner" aria-hidden="true" />
-        )}
+        {message.status === 'sending' && framed && <span class="msg-spinner" aria-hidden="true" />}
+        <span class={metaClass}>
+          <span class="msg-time">{formatTime(message.createdAt)}</span>
+          {mine && message.status === 'sending' && <ClockIcon />}
+          {mine && message.status === 'sent' && <CheckIcon />}
+        </span>
       </div>
       {message.kind === 'interactive' && !mine && message.items && (
         <InteractiveOptions
@@ -57,10 +93,6 @@ export function MessageBubble(props: {
           }
         />
       )}
-      {props.last && message.status === 'sent' && (
-        <span class="msg-time">{formatTime(message.createdAt)}</span>
-      )}
-      {message.status === 'sending' && <span class="msg-status">{STR.sending}</span>}
       {message.status === 'failed' && (
         <button
           type="button"

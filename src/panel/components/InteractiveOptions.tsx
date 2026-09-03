@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'preact/hooks';
+import { useState } from 'preact/hooks';
 import type { ApiItem } from '../api/types';
 import { STR } from '../lib/strings';
+import { Sheet } from './Sheet';
 
 const MAX_BUTTONS = 3;
 
@@ -18,39 +19,12 @@ function MenuIcon() {
   );
 }
 
-function CloseIcon() {
-  return (
-    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
-      <path
-        d="M6 6l12 12M18 6L6 18"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        stroke-linecap="round"
-      />
-    </svg>
-  );
-}
-
 export function InteractiveOptions(props: {
   items: ApiItem[];
   selectedValue: string | null;
   onSelect?(item: ApiItem): void;
 }) {
   const [sheetOpen, setSheetOpen] = useState(false);
-  const firstRowRef = useRef<HTMLButtonElement>(null);
-
-  useEffect(() => {
-    if (!sheetOpen) return;
-    firstRowRef.current?.focus();
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape') return;
-      event.stopPropagation();
-      setSheetOpen(false);
-    };
-    document.addEventListener('keydown', onKeyDown, true);
-    return () => document.removeEventListener('keydown', onKeyDown, true);
-  }, [sheetOpen]);
 
   if (props.selectedValue !== null) return null;
 
@@ -90,41 +64,14 @@ export function InteractiveOptions(props: {
         {STR.viewOptions}
       </button>
       {sheetOpen && (
-        <div class="sheet-backdrop" onClick={() => setSheetOpen(false)}>
-          <div
-            class="sheet"
-            role="dialog"
-            aria-modal="true"
-            aria-label={STR.viewOptions}
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div class="sheet-head">
-              <span class="sheet-title">{STR.viewOptions}</span>
-              <button
-                type="button"
-                class="sheet-close"
-                aria-label={STR.closeOptions}
-                onClick={() => setSheetOpen(false)}
-              >
-                <CloseIcon />
-              </button>
-            </div>
-            <div class="sheet-rows">
-              {props.items.map((item, index) => (
-                <button
-                  key={item.value}
-                  ref={index === 0 ? firstRowRef : undefined}
-                  type="button"
-                  class="sheet-row"
-                  onClick={() => pick(item)}
-                >
-                  <span class="sheet-row-title">{item.title}</span>
-                  {item.description && <span class="sheet-row-desc">{item.description}</span>}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
+        <Sheet title={STR.viewOptions} onClose={() => setSheetOpen(false)}>
+          {props.items.map((item) => (
+            <button key={item.value} type="button" class="sheet-row" onClick={() => pick(item)}>
+              <span class="sheet-row-title">{item.title}</span>
+              {item.description && <span class="sheet-row-desc">{item.description}</span>}
+            </button>
+          ))}
+        </Sheet>
       )}
     </div>
   );

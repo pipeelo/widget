@@ -7,6 +7,7 @@ import { MessageBubble } from './MessageBubble';
 
 interface Row {
   message: ChatMessage;
+  first: boolean;
   last: boolean;
 }
 
@@ -39,7 +40,7 @@ function buildSections(state: ChatState): DaySection[] {
     if (grouped && section.rows.length > 0) {
       section.rows[section.rows.length - 1]!.last = false;
     }
-    section.rows.push({ message, last: true });
+    section.rows.push({ message, first: !grouped, last: true });
     previous = message;
   }
   return sections;
@@ -49,7 +50,6 @@ export function MessageList(props: {
   state: ChatState;
   open: boolean;
   typing: boolean;
-  avatarInitial: string;
   welcome: string | null;
   historyError: boolean;
   loadingOlder: boolean;
@@ -155,11 +155,8 @@ export function MessageList(props: {
 
       {showWelcome && (
         <div class="day-section">
-          <div class="msg-row msg-row--theirs msg-row--last">
+          <div class="msg-row msg-row--theirs msg-row--first msg-row--last">
             <div class="msg-bubble">
-              <span class="msg-avatar" aria-hidden="true">
-                {props.avatarInitial}
-              </span>
               <span class="msg-text">{props.welcome}</span>
             </div>
           </div>
@@ -173,8 +170,8 @@ export function MessageList(props: {
             <MessageBubble
               key={row.message.id}
               message={row.message}
+              first={row.first}
               last={row.last}
-              avatarInitial={props.avatarInitial}
               onRetry={props.onRetry}
               onMediaError={props.onMediaError}
               onSelectOption={props.onSelectOption}
@@ -185,11 +182,8 @@ export function MessageList(props: {
 
       {props.typing && (
         <div class="day-section">
-          <div class="msg-row msg-row--theirs msg-row--last">
+          <div class="msg-row msg-row--theirs msg-row--first msg-row--last">
             <div class="msg-bubble msg-bubble--typing" role="status" aria-label={STR.typing}>
-              <span class="msg-avatar" aria-hidden="true">
-                {props.avatarInitial}
-              </span>
               <span class="typing-dots" aria-hidden="true">
                 <span />
                 <span />

@@ -1,5 +1,6 @@
 import { STR } from '../lib/strings';
 import type { ChatMessage } from '../state/store';
+import { AudioMessage } from './AudioMessage';
 
 function DocIcon() {
   return (
@@ -43,7 +44,7 @@ export function MediaContent({
   }
 
   if (message.kind === 'audio') {
-    return <audio class="msg-audio" controls preload="none" src={url} onError={onMediaError} />;
+    return <AudioMessage url={url} onMediaError={onMediaError} />;
   }
 
   if (message.kind === 'video') {

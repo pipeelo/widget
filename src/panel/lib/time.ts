@@ -12,6 +12,13 @@ export function formatTime(iso: string): string {
   return isNaN(date.getTime()) ? '' : timeFmt.format(date);
 }
 
+export function formatDuration(ms: number): string {
+  const total = Math.max(0, Math.round(ms / 1000));
+  const minutes = Math.floor(total / 60);
+  const seconds = total % 60;
+  return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+}
+
 function startOfDay(date: Date): number {
   const copy = new Date(date);
   copy.setHours(0, 0, 0, 0);

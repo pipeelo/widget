@@ -53,14 +53,24 @@ const RULES: MediaRule[] = [
   },
 ];
 
-export const FILE_ACCEPT = RULES.map((rule) => rule.mimes.join(',')).join(',');
+function acceptFor(...fields: MediaField[]): string {
+  return RULES.filter((rule) => fields.indexOf(rule.field) !== -1)
+    .map((rule) => rule.mimes.join(','))
+    .join(',');
+}
+
+export const FILE_ACCEPT = acceptFor('image', 'audio', 'video', 'document');
+export const ACCEPT_CAMERA = 'image/jpeg,image/png';
+export const ACCEPT_GALLERY = acceptFor('image', 'video');
+export const ACCEPT_DOCUMENT = acceptFor('document');
+export const ACCEPT_AUDIO = acceptFor('audio');
 
 export type FileClassification =
   | { ok: true; field: MediaField }
   | { ok: false; error: string };
 
 export function classifyFile(file: { type: string; size: number }): FileClassification {
-  const mime = (file.type || '').toLowerCase();
+  const mime = ((file.type || '').split(';')[0] ?? '').trim().toLowerCase();
   const rule = RULES.find((r) => r.mimes.indexOf(mime) !== -1);
   if (!rule) return { ok: false, error: STR.fileUnsupported };
   if (file.size > rule.maxBytes) return { ok: false, error: STR.fileTooLarge(rule.limitLabel) };

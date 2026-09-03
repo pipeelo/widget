@@ -53,7 +53,19 @@ não existirem mais, reescrever seguindo os passos acima (~150 linhas).
   `body.style.top === '-<scrollY>px'`; no fechar, tudo restaurado e
   `scrollY` de volta.
 - Focar textarea por toque, digitar, enviar — foco DEVE continuar no textarea
-  após enviar (keepFocus) e a bolha `.msg-row--mine` aparecer.
+  após enviar (keepFocus) e a bolha `.msg-row--mine` aparecer. Com a textarea
+  vazia o botão principal é o **mic** (`aria-label="Gravar áudio"`) — só vira
+  "Enviar mensagem" com texto; re-consultar o botão depois de enviar acha o mic.
+- **Áudio**: Chrome com `--use-fake-device-for-media-stream
+  --use-fake-ui-for-media-stream` (o device fake emite um tom real). Mic →
+  `.composer-recording` com timer andando e altura do composer igual à de
+  antes; enviar → `POST …/message` 201 (multipart `audio`) e balão
+  `.msg-row--mine .msg-audio`; lixeira cancela; fechar o painel gravando
+  cancela e para as trilhas; `Browser.setPermission microphone=denied` (sem o
+  flag de fake UI) → toast "Permita o acesso ao microfone…"; `MediaRecorder`
+  indefinido → botão enviar clássico. Embed same-origin NÃO prova o
+  `allow="microphone"` do loader (filho same-origin já herda) — para provar,
+  host em `localhost` e loader em `127.0.0.1` (`?loader=`).
 - Fechar no X **com o campo focado** (caminho pointerdown) — e de novo com o
   "teclado" simulado aberto.
 - **Teclado iOS simulado**: `Object.defineProperty(window,'visualViewport',
