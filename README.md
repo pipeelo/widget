@@ -97,30 +97,32 @@ yarn preview  # serve dist/ — demo prod-like: http://localhost:4173/v1/demo.ht
 
 Env (todas opcionais — defaults de produção embutidos; ver `.env.example`): `VITE_API_URL`, `VITE_SOKETI_KEY/HOST/PORT/CLUSTER/TLS`.
 
-## Deploy (Vercel)
+## Deploy (Easypanel)
 
-Hospedagem **estática** — só arquivos, sem servidor. O `vercel.json` já define tudo (`buildCommand: yarn build`, `outputDirectory: dist`, e as regras de cache abaixo). Passos:
+Hospedagem **estática** — só arquivos, sem servidor de aplicação. O Easypanel builda pelo `Dockerfile`: o primeiro estágio roda `yarn build` no Node 20, o segundo serve o `dist/` com nginx. O `nginx.conf` do repositório repete as regras de cache da tabela abaixo. O `vercel.json` continua no repositório e segue válido para quem quiser subir na Vercel; o Easypanel não o lê.
 
-1. Push do repositório e **Import Project** na Vercel (ela detecta o `vercel.json`; não precisa configurar build na UI).
-2. Deploy. A Vercel roda `yarn build` e serve `dist/` como raiz — os arquivos ficam sob `/v1/`:
-   - `https://<deploy>/v1/loader.js` (o script do snippet)
-   - `https://<deploy>/v1/` (o painel, dentro do iframe)
-   - `https://<deploy>/v1/demo.html?id={identifier}` (página de teste do build real)
-3. Em **Settings → Domains**, apontar `widget.pipeelo.com` para o projeto.
+Serviço no painel: projeto `pipeelo`, serviço `widget`, source GitHub `pipeelo/widget` (ref `main`, path `/`), build `dockerfile`, porta 80.
 
-Não precisa de env vars: os defaults de produção (`api.pipeelo.com`, Soketi) estão embutidos no código. Para apontar outro ambiente, defina `VITE_API_URL` / `VITE_SOKETI_*` nas variáveis do projeto na Vercel.
+O nginx serve `dist/` como raiz — os arquivos ficam sob `/v1/`:
 
-O widget é **domain-agnostic**: o loader deriva a URL do painel do próprio `src`, então funciona já na URL `*.vercel.app` (dá para testar antes de configurar o DNS). O snippet que o dashboard entrega ao cliente é que precisa apontar para o domínio final.
+- `https://<dominio>/v1/loader.js` (o script do snippet)
+- `https://<dominio>/v1/` (o painel, dentro do iframe)
+- `https://<dominio>/v1/demo.html?id={identifier}` (página de teste do build real)
+- `https://<dominio>/healthz` (200 `ok`, para o proxy)
 
-Cache (no `vercel.json`):
+Não precisa de env vars: os defaults de produção (`api.pipeelo.com`, Soketi) estão embutidos no código. Para apontar outro ambiente, defina `VITE_API_URL` / `VITE_SOKETI_*` no env do serviço. O Easypanel injeta o env como `--build-arg`, e o `Dockerfile` grava um `.env.local` **só com as variáveis preenchidas**. Variável vazia não vira `.env.local`, porque o código usa `?? default` e `??` não cobre string vazia.
+
+O widget é **domain-agnostic**: o loader deriva a URL do painel do próprio `src`, então funciona já no domínio `*.easypanel.host` (dá para testar antes de mexer no DNS). O snippet que o dashboard entrega ao cliente é que precisa apontar para o domínio final.
+
+Cache (no `nginx.conf`, igual ao `vercel.json`):
 
 | Caminho | Cache-Control |
 |---|---|
 | `/v1/loader.js` | `public, max-age=300, must-revalidate` (nome fixo — cache curto é o mecanismo de atualização) |
 | `/v1/assets/*` | `public, max-age=31536000, immutable` (hasheados) |
-| `/v1/` e `/v1/index.html` | `no-cache` (a casca do painel referencia assets hasheados) |
+| `/v1/` e `/v1/index.html` | `no-cache, must-revalidate` (a casca do painel referencia assets hasheados) |
 
-**Não** adicionar `X-Frame-Options` nem CSP `frame-ancestors` restritivo: o painel roda em iframe em sites de terceiros — bloquear frame quebra o widget. A Vercel não adiciona isso por padrão.
+**Não** adicionar `X-Frame-Options` nem CSP `frame-ancestors` restritivo: o painel roda em iframe em sites de terceiros — bloquear frame quebra o widget. O nginx não adiciona nenhum dos dois por padrão.
 
 Versionamento: mudança incompatível de contrato = novo caminho (`/v2/`) no loader e no painel — embeds existentes continuam no `/v1/`.
 

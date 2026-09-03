@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Widget de chat embutível estilo Intercom (canal `WEBSITE` da Pipeelo): bolha flutuante + painel de conversa em iframe, colado por snippet em sites de terceiros. Docs canônicos — ler antes de mudança não trivial:
 
-- `README.md` — anatomia, comportamentos-chave, deploy Vercel
+- `README.md` — anatomia, comportamentos-chave, deploy Easypanel
 - `widget.md` — contrato do projeto e decisões (iframe vs Shadow DOM, token no host, Preact, pusher-js)
 - `identidade.md` — spec do `setUser`. O subconjunto básico (`name`/`email`/`phone`/`document`) está implementado de ponta a ponta; `ref`/`attributes`/`signature` (modo verificado) seguem só como spec, pendentes de backend
 - `pre-chat.md` — spec do formulário pré-chat obrigatório (campo `pre_chat_form` na config do canal); **implementado no painel** (gate em `App.tsx` + `src/panel/lib/pre-chat.ts` + `PreChatForm`), backend em rollout
@@ -72,6 +72,6 @@ Além disso: o loader só importa de `src/shared/` (zero dependências de runtim
 
 ### Deploy
 
-Vercel estático; `vercel.json` define tudo, inclusive o cache (loader.js com cache curto é o mecanismo de atualização; assets hasheados immutable; casca do painel no-cache). **Nunca** adicionar `X-Frame-Options` nem CSP `frame-ancestors` — o painel roda em iframe em site de terceiros. Mudança incompatível de contrato = caminho novo (`/v2/`) no loader e no painel; embeds existentes continuam no `/v1/`.
+Easypanel estático; o `Dockerfile` builda com `yarn build` e o nginx serve o `dist/`. O `nginx.conf` define o cache (loader.js com cache curto é o mecanismo de atualização; assets hasheados immutable; casca do painel no-cache). O `vercel.json` segue no repositório com as mesmas regras, para quem subir na Vercel. **Nunca** adicionar `X-Frame-Options` nem CSP `frame-ancestors` — o painel roda em iframe em site de terceiros. Mudança incompatível de contrato = caminho novo (`/v2/`) no loader e no painel; embeds existentes continuam no `/v1/`.
 
 Env (`.env.example`): todas opcionais, defaults de produção embutidos no código — `VITE_API_URL`, `VITE_SOKETI_*`.
