@@ -69,9 +69,9 @@ Mostrar o formulário quando **todas** valem:
 1. `pre_chat_form.fields` normalizado é não-vazio;
 2. a identidade corrente do painel (última `identify` aceita) **não cobre** todos os
    `fields` exigidos;
-3. é a **primeira conversa**: lista de conversas carregada com zero itens. Não precisa
+3. é a **primeira conversa**: histórico carregado vazio (sem mensagens e sem `chats`). Não precisa
    de storage novo — como *nada é criado no servidor até a primeira mensagem*,
-   "primeira conversa" ≡ "não há conversas para este `external_id`".
+   "primeira conversa" ≡ "não há histórico para este `external_id`".
 
 Fluxo: view própria entre o boot e o thread (`boot → form → thread`), com título fixo
 do painel como abertura, os campos exigidos **que faltam** e um botão "Iniciar
@@ -86,7 +86,7 @@ Casos de borda:
 | `setUser` parcial | Form só com os campos exigidos que faltam (menos fricção; dado errado do site se corrige no site) |
 | `setUser` completo chega com o form aberto | Preenche o que faltava; se nada mais falta, dispensa o form e segue |
 | Visitante fecha sem enviar mensagem | Nada foi criado no servidor → próxima abertura mostra o form de novo (correto) |
-| Erro de rede ao listar conversas | **Fail-open**: chat abre sem form — disponibilidade acima de política |
+| Erro de rede ao carregar o histórico | **Fail-open**: chat abre sem form — disponibilidade acima de política |
 | `setUser(null)` (logout) com conversa existente | Sem form: o cliente já existe no pipeline; visitante novo de verdade = storage limpo |
 | Storage limpo | `external_id` novo → primeira conversa → form de novo |
 | Painel antigo + config nova (ou vice-versa) | Leitor tolerante: campo ignorado → sem form |
@@ -110,9 +110,9 @@ Strings em `src/panel/lib/strings.ts`; tema e densidade mobile como o resto do p
   sobrevive até fechar a página. E-mail só conta como coberto com formato básico
   válido (a mesma régua da API, que descarta inválido em silêncio) — e-mail lixo do
   site não fura o form.
-- **O landing espera a config só no caminho de primeira conversa** (zero conversas):
+- **O landing espera a config só no caminho de primeira conversa** (histórico vazio):
   visitante recorrente não paga nada e o 1º open instantâneo (3fff70b) fica intacto.
-  Config e conversas já saem em paralelo no mount — a espera é `max()`, não soma.
+  Config e histórico já saem em paralelo no mount — a espera é `max()`, não soma.
 - **O composer segura o envio durante o boot** (texto e anexo; digitação e foco
   seguem livres): sem isso, quem digitasse rápido criaria a conversa antes de o
   landing decidir e furaria o gate.

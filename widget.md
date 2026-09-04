@@ -41,7 +41,7 @@ Rotas públicas, sem autenticação, identificadas pelo id (uuid) do registro do
 
 - `GET /website-channel/config/{identifier}` — `name`, `widget_color`, `welcome_message`, `theme` (`light`/`dark`), `message_preview` (null = sem teaser), `display_mode` (`floating`/`fullscreen` — tela cheia: o chat é a página, para WebView de app; o painel usa densidade mobile; ver "Embed em app" no README) e `launcher_image` (null = bolha com o ícone de balão); monta a UI no boot. Resposta cacheável (`Cache-Control` de alguns minutos) — mudança de config demora esse tanto pra refletir.
 - `POST /website-channel/message/{identifier}` — `external_id` (uuid — a API valida o formato), atributos opcionais de primeiro contato (nome, telefone, email) e um conteúdo por request (texto ou arquivo); retorna `customer_id`, `chat_id`, `message_id`.
-- `GET /website-channel/history/{identifier}` — `external_id` + cursor; a linha do tempo da identidade, da mais recente para trás.
+- `GET /website-channel/history/{identifier}` — `external_id` + cursor; a linha do tempo da identidade, da mais recente para trás. Sem `chat_id` cruza todos os atendimentos — é assim que o widget consome; a resposta traz `chats` (`chat_id`, `protocol`, `started_at`, `ended_at`) dos atendimentos presentes na página.
 - Socket: canal público `website-channel.{identifier}.{external_id}`, evento `website-channel.message` — payload com id da mensagem, id do chat, `external_id`, tipo, texto ou URL temporária de mídia, autor e timestamp.
 
 ## Sessão do visitante

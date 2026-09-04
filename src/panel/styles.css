@@ -186,8 +186,7 @@ button {
   animation: pip-pulse 1.2s ease-in-out infinite;
 }
 
-.header-close,
-.header-back {
+.header-close {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -202,26 +201,19 @@ button {
   flex-shrink: 0;
 }
 
-.header-back {
-  margin-left: -6px;
-}
-
 @media (hover: hover) {
-  .header-close:hover,
-  .header-back:hover {
+  .header-close:hover {
     opacity: 1;
     background: rgba(255, 255, 255, 0.16);
   }
 }
 
-.header-close:active,
-.header-back:active {
+.header-close:active {
   opacity: 1;
   background: rgba(255, 255, 255, 0.16);
 }
 
-.header-close svg,
-.header-back svg {
+.header-close svg {
   width: var(--pip-icon-close);
   height: var(--pip-icon-close);
 }
@@ -292,6 +284,53 @@ button {
   font-size: var(--pip-fs-meta);
   color: var(--pip-text-soft);
   padding: 4px 0 8px;
+}
+
+.older-chip {
+  display: table;
+  margin: 0 auto 12px;
+  padding: 6px 14px;
+  border: 1px solid var(--pip-border);
+  border-radius: 999px;
+  background: var(--pip-surface);
+  color: var(--pip-text);
+  font-family: inherit;
+  font-size: var(--pip-fs-meta);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  .older-chip:hover {
+    border-color: var(--pip-primary);
+  }
+}
+
+.older-chip:active {
+  border-color: var(--pip-primary);
+}
+
+.closed-notice {
+  display: table;
+  margin: 4px auto 16px;
+  padding: 6px 14px;
+  border-radius: 14px;
+  background: var(--pip-bubble-theirs);
+  box-shadow: var(--pip-bubble-shadow);
+  text-align: center;
+  font-size: var(--pip-fs-meta);
+  line-height: 1.45;
+  color: var(--pip-text-soft);
+}
+
+.closed-notice span {
+  display: block;
+}
+
+.closed-notice-title {
+  font-weight: 500;
+  color: var(--pip-text);
 }
 
 .msg-row {
@@ -681,133 +720,6 @@ button {
   color: var(--pip-primary-dark);
 }
 
-.conv-list {
-  flex: 1;
-  overflow-y: auto;
-  padding: 12px calc(12px + var(--pip-safe-right)) 8px calc(12px + var(--pip-safe-left));
-  background: var(--pip-list-bg);
-  overscroll-behavior: contain;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: thin;
-  scrollbar-color: var(--pip-border) transparent;
-}
-
-.conv-list::-webkit-scrollbar {
-  width: 6px;
-}
-
-.conv-list::-webkit-scrollbar-thumb {
-  background: var(--pip-border);
-  border-radius: 6px;
-}
-
-.conv-row {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  width: 100%;
-  margin-bottom: 8px;
-  padding: 12px;
-  border: 1px solid var(--pip-border);
-  border-radius: 12px;
-  background: var(--pip-surface);
-  color: var(--pip-text);
-  font-family: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-
-@media (hover: hover) {
-  .conv-row:hover {
-    border-color: var(--pip-primary);
-  }
-}
-
-.conv-row:active {
-  border-color: var(--pip-primary);
-}
-
-.conv-row-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.conv-status {
-  font-size: var(--pip-fs-meta);
-  font-weight: 600;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-  color: var(--pip-text-soft);
-}
-
-.conv-status--open {
-  color: var(--pip-text-strong);
-}
-
-.conv-status--open::before {
-  content: '';
-  display: inline-block;
-  width: 7px;
-  height: 7px;
-  margin-right: 6px;
-  border-radius: 50%;
-  background: var(--pip-primary);
-  vertical-align: middle;
-}
-
-.conv-stamp {
-  flex-shrink: 0;
-  font-size: var(--pip-fs-meta);
-  color: var(--pip-text-soft);
-}
-
-.conv-snippet {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  font-size: var(--pip-fs-small);
-  line-height: 1.4;
-  color: var(--pip-text);
-}
-
-.conv-empty {
-  margin: 0;
-  padding: 32px 16px;
-  text-align: center;
-  font-size: var(--pip-fs-small);
-  color: var(--pip-text-soft);
-}
-
-.conv-more {
-  display: block;
-  width: 100%;
-  margin: 4px 0 8px;
-  padding: 9px 12px;
-  border: 1px solid var(--pip-border);
-  border-radius: 10px;
-  background: none;
-  color: var(--pip-text);
-  font-family: inherit;
-  font-size: var(--pip-fs-btn);
-  cursor: pointer;
-}
-
-.conv-more:disabled {
-  opacity: 0.6;
-  cursor: default;
-}
-
-.conv-actions {
-  flex-shrink: 0;
-  border-top: 1px solid var(--pip-border);
-  background: var(--pip-surface);
-  padding: var(--pip-composer-pad-y) calc(12px + var(--pip-safe-right))
-    calc(var(--pip-composer-pad-y) + var(--pip-safe-bottom)) calc(12px + var(--pip-safe-left));
-}
-
 .conv-new {
   display: block;
   width: 100%;
@@ -826,38 +738,6 @@ button {
 
 .conv-new:active {
   transform: scale(0.98);
-}
-
-.closed-notice {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  flex-shrink: 0;
-  border-top: 1px solid var(--pip-border);
-  background: var(--pip-surface);
-  padding: 14px calc(16px + var(--pip-safe-right)) calc(14px + var(--pip-safe-bottom))
-    calc(16px + var(--pip-safe-left));
-  text-align: center;
-}
-
-.closed-notice p {
-  margin: 0;
-}
-
-.closed-notice-title {
-  font-size: var(--pip-fs-small);
-  font-weight: 500;
-  color: var(--pip-text);
-}
-
-.closed-notice-protocol {
-  font-size: var(--pip-fs-meta);
-  color: var(--pip-text-soft);
-}
-
-.closed-notice .conv-new {
-  margin-top: 8px;
 }
 
 .prechat {
@@ -1226,7 +1106,7 @@ textarea {
 .composer-attach,
 .composer-send,
 .composer-cancel,
-.conv-row,
+.older-chip,
 .conv-new {
   -webkit-user-select: none;
   user-select: none;
@@ -1238,8 +1118,7 @@ a:focus-visible {
   outline-offset: 2px;
 }
 
-.header-close:focus-visible,
-.header-back:focus-visible {
+.header-close:focus-visible {
   outline-color: currentColor;
 }
 
@@ -1369,26 +1248,13 @@ a:focus-visible {
   font-size: 16px;
 }
 
-:root[data-density='mobile'] .conv-list {
-  scrollbar-width: none;
-}
-
-:root[data-density='mobile'] .conv-list::-webkit-scrollbar {
-  display: none;
-}
-
-:root[data-density='mobile'] .conv-row {
-  padding: 14px;
-  border-radius: 14px;
-}
-
 :root[data-density='mobile'] .conv-new {
   min-height: 48px;
   border-radius: 12px;
 }
 
-:root[data-density='mobile'] .conv-more {
-  min-height: 44px;
+:root[data-density='mobile'] .older-chip {
+  padding: 9px 16px;
 }
 
 :root[data-density='mobile'] .prechat-input {

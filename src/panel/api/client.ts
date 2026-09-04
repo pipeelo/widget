@@ -1,12 +1,6 @@
 import type { WidgetUser } from '../../shared/protocol';
 import { ENV } from '../env';
-import type {
-  ConversationsPage,
-  HistoryPage,
-  MediaField,
-  SendOutcome,
-  WidgetConfig,
-} from './types';
+import type { HistoryPage, MediaField, SendOutcome, WidgetConfig } from './types';
 
 function endpoint(path: string, identifier: string): string {
   return `${ENV.apiUrl}/website-channel/${path}/${encodeURIComponent(identifier)}`;
@@ -29,40 +23,13 @@ export async function fetchConfig(identifier: string): Promise<WidgetConfig> {
   }
 }
 
-export async function fetchConversations(
-  identifier: string,
-  externalId: string,
-  cursor?: string | null,
-  perPage = 20
-): Promise<ConversationsPage> {
-  const params = new URLSearchParams({ external_id: externalId, per_page: String(perPage) });
-  if (cursor) params.set('cursor', cursor);
-  const t = withTimeout(20000);
-  try {
-    const res = await fetch(`${endpoint('conversations', identifier)}?${params.toString()}`, {
-      signal: t.signal,
-    });
-    if (!res.ok) throw new Error(`conversations HTTP ${res.status}`);
-    const page = (await res.json()) as ConversationsPage;
-    return {
-      ...page,
-      data: Array.isArray(page.data) ? page.data : [],
-      next_cursor: page.next_cursor ?? null,
-    };
-  } finally {
-    t.clear();
-  }
-}
-
 export async function fetchHistory(
   identifier: string,
   externalId: string,
-  chatId: string | null,
   cursor?: string | null,
   perPage = 30
 ): Promise<HistoryPage> {
   const params = new URLSearchParams({ external_id: externalId, per_page: String(perPage) });
-  if (chatId) params.set('chat_id', chatId);
   if (cursor) params.set('cursor', cursor);
   const t = withTimeout(20000);
   try {
@@ -74,6 +41,7 @@ export async function fetchHistory(
     return {
       ...page,
       data: Array.isArray(page.data) ? page.data : [],
+      chats: Array.isArray(page.chats) ? page.chats : [],
       next_cursor: page.next_cursor ?? null,
     };
   } finally {

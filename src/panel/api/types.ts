@@ -24,8 +24,16 @@ export interface ApiMessage {
   created_at: string;
 }
 
+export interface ChatSummary {
+  chat_id: string;
+  protocol: string | null;
+  started_at: string | null;
+  ended_at: string | null;
+}
+
 export interface HistoryPage {
   data: ApiMessage[];
+  chats: ChatSummary[];
   per_page: number;
   next_cursor: string | null;
   next_page_url: string | null;
@@ -36,26 +44,7 @@ export interface HistoryPage {
 export interface ChatClosedEvent {
   chat_id: string;
   ended_at: string | null;
-}
-
-export interface Conversation {
-  chat_id: string;
   protocol: string | null;
-  started_at: string | null;
-  ended_at: string | null;
-  last_message_text: string | null;
-  last_message_type: string | null;
-  last_message_from: MessageFrom;
-  last_message_created_at: string | null;
-}
-
-export interface ConversationsPage {
-  data: Conversation[];
-  per_page: number;
-  next_cursor: string | null;
-  next_page_url: string | null;
-  prev_cursor: string | null;
-  prev_page_url: string | null;
 }
 
 export type MediaField = 'image' | 'audio' | 'video' | 'document';

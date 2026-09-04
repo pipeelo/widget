@@ -5,9 +5,7 @@ import { normalizeDisplayMode } from '../shared/widget-config';
 import { fetchConfig } from './api/client';
 import type { WidgetConfig } from './api/types';
 import { initPanelBridge, isEmbedded, postToLoader } from './bridge';
-import { ClosedNotice } from './components/ClosedNotice';
 import { Composer } from './components/Composer';
-import { ConversationList } from './components/ConversationList';
 import { Footer } from './components/Footer';
 import { Header } from './components/Header';
 import { MessageList } from './components/MessageList';
@@ -16,7 +14,6 @@ import { mineBubbleColor } from './lib/bubble-color';
 import { missingPreChatFields } from './lib/pre-chat';
 import { STR } from './lib/strings';
 import { useChat } from './state/useChat';
-import { useConversations } from './state/useConversations';
 
 export interface PanelParams {
   id: string;
@@ -25,7 +22,7 @@ export interface PanelParams {
   mode: string | null;
 }
 
-type View = 'boot' | 'form' | 'list' | 'thread';
+type View = 'boot' | 'form' | 'thread';
 
 export function App({ params }: { params: PanelParams }) {
   const [config, setConfig] = useState<WidgetConfig | null>(null);
@@ -34,12 +31,7 @@ export function App({ params }: { params: PanelParams }) {
   const [focusToken, setFocusToken] = useState(0);
   const [view, setView] = useState<View>('boot');
 
-  const conversations = useConversations(params.id, params.eid);
-  const chat = useChat(params.id, params.eid, params.lastread, {
-    conversations: conversations.items,
-    onConversationsStale: conversations.refresh,
-    onChatClosed: conversations.markClosed,
-  });
+  const chat = useChat(params.id, params.eid, params.lastread);
 
   useEffect(() => {
     initPanelBridge((isOpen) => {
@@ -55,46 +47,26 @@ export function App({ params }: { params: PanelParams }) {
   }, []);
 
   const landedRef = useRef(false);
+  const firstConversation =
+    chat.state.historyLoaded && chat.state.order.length === 0 && chat.state.chats.size === 0;
   useEffect(() => {
     if (landedRef.current) return;
-    if (!conversations.loaded && !conversations.error) return;
-    const firstConversation = conversations.loaded && conversations.items.length === 0;
+    if (!chat.state.historyLoaded && !chat.historyError) return;
     if (firstConversation && configLoading) return;
     landedRef.current = true;
-    if (chat.state.order.length > 0) {
-      setView('thread');
-      return;
-    }
-    if (conversations.open) {
-      chat.openConversation(conversations.open.chat_id);
-      setView('thread');
-    } else if (conversations.items.length > 0 || conversations.error) {
-      setView('list');
-    } else if (missingPreChatFields(config, chat.identity).length > 0) {
+    if (firstConversation && missingPreChatFields(config, chat.identity).length > 0) {
       setView('form');
     } else {
-      chat.openConversation(null);
       setView('thread');
     }
-  }, [
-    conversations.loaded,
-    conversations.error,
-    conversations.open,
-    conversations.items,
-    chat.openConversation,
-    chat.state.order.length,
-    configLoading,
-    config,
-    chat.identity,
-  ]);
+  }, [chat.state.historyLoaded, chat.historyError, firstConversation, configLoading, config, chat.identity]);
 
   useEffect(() => {
     if (view !== 'form') return;
     if (missingPreChatFields(config, chat.identity).length > 0) return;
-    chat.openConversation(null);
     setView('thread');
     setFocusToken((t) => t + 1);
-  }, [view, config, chat.identity, chat.openConversation]);
+  }, [view, config, chat.identity]);
 
   useEffect(() => {
     let cancelled = false;
@@ -190,18 +162,6 @@ export function App({ params }: { params: PanelParams }) {
   const close = () => postToLoader({ __pipeelo: true, type: 'close' });
   const name = (config?.name ?? '').trim() || STR.brandFallback;
 
-  const openThread = (chatId: string | null) => {
-    chat.openConversation(chatId);
-    setView('thread');
-    setFocusToken((t) => t + 1);
-  };
-
-  const active = chat.activeChatId
-    ? conversations.items.find((item) => item.chat_id === chat.activeChatId) ?? null
-    : null;
-  const readOnly = Boolean(active?.ended_at);
-  const canStartNew = (conversations.loaded || conversations.error) && !conversations.open;
-
   return (
     <div class="panel">
       <Header
@@ -209,11 +169,6 @@ export function App({ params }: { params: PanelParams }) {
         brandGradient={!config?.widget_color}
         loading={configLoading && !config}
         showClose={!fullscreen}
-        onBack={
-          view === 'thread' && conversations.items.length > 0
-            ? () => setView('list')
-            : undefined
-        }
         onClose={close}
       />
       {chat.socketDown && (
@@ -224,54 +179,32 @@ export function App({ params }: { params: PanelParams }) {
 
       {view === 'form' ? (
         <PreChatForm fields={missingPreChatFields(config, chat.identity)} onSubmit={chat.setFormUser} />
-      ) : view === 'list' ? (
-        <ConversationList
-          items={conversations.items}
-          loaded={conversations.loaded}
-          error={conversations.error}
-          loadingMore={conversations.loadingMore}
-          hasMore={conversations.hasMore}
-          canStartNew={canStartNew}
-          onOpen={openThread}
-          onStartNew={() => openThread(null)}
-          onRetry={conversations.refresh}
-          onLoadMore={conversations.loadMore}
-        />
       ) : (
         <>
           <MessageList
-            key={chat.activeChatId ?? 'new'}
             state={chat.state}
             open={open}
-            typing={chat.typing && !readOnly}
-            welcome={readOnly ? null : config?.welcome_message ?? null}
+            typing={chat.typing}
+            welcome={config?.welcome_message ?? null}
             historyError={chat.historyError}
             loadingOlder={chat.loadingOlder}
             onRetryHistory={chat.refreshHistory}
             loadOlder={chat.loadOlder}
+            onReveal={chat.reveal}
             onRetry={chat.retry}
             onMediaError={onMediaError}
-            onSelectOption={readOnly ? undefined : chat.selectOption}
+            onSelectOption={chat.selectOption}
           />
-          {readOnly ? (
-            <ClosedNotice
-              endedAt={active?.ended_at ?? null}
-              protocol={active?.protocol ?? null}
-              canStartNew={canStartNew}
-              onStartNew={() => openThread(null)}
-            />
-          ) : (
-            <Composer
-              onSendText={chat.sendTextMessage}
-              onSendFile={chat.sendFileMessage}
-              focusToken={focusToken}
-              open={open}
-              disabled={
-                view === 'boot' &&
-                (configLoading || missingPreChatFields(config, chat.identity).length > 0)
-              }
-            />
-          )}
+          <Composer
+            onSendText={chat.sendTextMessage}
+            onSendFile={chat.sendFileMessage}
+            focusToken={focusToken}
+            open={open}
+            disabled={
+              view === 'boot' &&
+              (configLoading || missingPreChatFields(config, chat.identity).length > 0)
+            }
+          />
         </>
       )}
 

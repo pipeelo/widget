@@ -37,21 +37,6 @@ function CloseIcon() {
   );
 }
 
-function BackIcon() {
-  return (
-    <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
-      <path
-        d="M14.5 6 8.5 12l6 6"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2.2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-      />
-    </svg>
-  );
-}
-
 function usePointerAction(action: () => void) {
   const firedAtRef = useRef(0);
   return {
@@ -72,20 +57,13 @@ export function Header(props: {
   brandGradient: boolean;
   loading: boolean;
   showClose: boolean;
-  onBack?: () => void;
   onClose(): void;
 }) {
   const initial = (props.name.trim().charAt(0) || 'P').toUpperCase();
   const closeAction = usePointerAction(props.onClose);
-  const backAction = usePointerAction(props.onBack ?? (() => {}));
 
   return (
     <header class={'header' + (props.brandGradient ? ' header--brand' : '')}>
-      {props.onBack && (
-        <button type="button" class="header-back" aria-label={STR.back} {...backAction}>
-          <BackIcon />
-        </button>
-      )}
       <span class="header-avatar" aria-hidden="true">
         {initial}
       </span>

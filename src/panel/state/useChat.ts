@@ -2,37 +2,29 @@ import { useCallback, useEffect, useReducer, useRef, useState } from 'preact/hoo
 import type { WidgetUser } from '../../shared/protocol';
 import { uuidV4 } from '../../shared/uuid';
 import { fetchHistory, sendFile, sendText } from '../api/client';
-import type { ApiItem, ApiMessage, Conversation, MediaField, SendOutcome } from '../api/types';
+import type { ApiItem, ApiMessage, MediaField, SendOutcome } from '../api/types';
 import { postToLoader } from '../bridge';
 import { chime, previewOf } from '../lib/attention';
 import { composeIdentity } from '../lib/pre-chat';
 import type { SocketHandle } from '../realtime/socket';
-import { chatReducer, initialChatState, type ChatState } from './store';
+import { chatReducer, initialChatState, openChatId, type ChatState } from './store';
 
-const STALE_DEBOUNCE_MS = 1000;
 const RECONNECT_REFETCH_MS = 2000;
 const TYPING_TTL_MS = 8000;
 
-export interface ChatHandlers {
-  conversations: Conversation[];
-  onConversationsStale(): void;
-  onChatClosed(chatId: string, endedAt: string | null): void;
-}
-
 export interface ChatController {
   state: ChatState;
-  activeChatId: string | null;
   socketDown: boolean;
   typing: boolean;
   historyError: boolean;
   loadingOlder: boolean;
   identity: WidgetUser | null;
-  openConversation(chatId: string | null): void;
   sendTextMessage(text: string): void;
   sendFileMessage(field: MediaField, file: File): void;
   selectOption(messageId: string, item: ApiItem): void;
   retry(localId: string): void;
   loadOlder(): void;
+  reveal(): void;
   refreshHistory(): void;
   notifyVisibility(open: boolean): void;
   setIdentity(user: WidgetUser | null): void;
@@ -42,11 +34,9 @@ export interface ChatController {
 export function useChat(
   identifier: string,
   externalId: string,
-  lastReadParam: string | null,
-  handlers: ChatHandlers
+  lastReadParam: string | null
 ): ChatController {
   const [state, dispatch] = useReducer(chatReducer, initialChatState);
-  const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [socketDown, setSocketDown] = useState(false);
   const [historyError, setHistoryError] = useState(false);
   const [loadingOlder, setLoadingOlder] = useState(false);
@@ -55,15 +45,10 @@ export function useChat(
 
   const stateRef = useRef(state);
   stateRef.current = state;
-  const activeChatIdRef = useRef(activeChatId);
-  activeChatIdRef.current = activeChatId;
-  const handlersRef = useRef(handlers);
-  handlersRef.current = handlers;
 
   const openRef = useRef(false);
   const loadingOlderRef = useRef(false);
   const historyRequestRef = useRef(0);
-  const staleTimerRef = useRef<number | undefined>(undefined);
   const refetchTimerRef = useRef<number | undefined>(undefined);
   const typingTimerRef = useRef<number | undefined>(undefined);
 
@@ -75,7 +60,6 @@ export function useChat(
   const lastReadRef = useRef<number>(lastReadParam ? Date.parse(lastReadParam) || 0 : 0);
   const unreadIdsRef = useRef<Set<string>>(new Set());
   const newestCompanyRef = useRef<{ epoch: number; iso: string } | null>(null);
-  const newestByChatRef = useRef<Map<string, number>>(new Map());
   const lastPostedUnreadRef = useRef<number | null>(null);
 
   const trackUnread = useCallback((items: ApiMessage[], live: boolean) => {
@@ -85,9 +69,6 @@ export function useChat(
     for (const item of items) {
       if (item.from !== 'company') continue;
       const epoch = Date.parse(item.created_at) || 0;
-      if (epoch > (newestByChatRef.current.get(item.chat_id) ?? 0)) {
-        newestByChatRef.current.set(item.chat_id, epoch);
-      }
       if (epoch > (newestCompanyRef.current?.epoch ?? 0)) {
         newestCompanyRef.current = { epoch, iso: item.created_at };
         changed = true;
@@ -108,62 +89,38 @@ export function useChat(
     }
   }, []);
 
-  const markConversationsStale = useCallback(() => {
-    window.clearTimeout(staleTimerRef.current);
-    staleTimerRef.current = window.setTimeout(
-      () => handlersRef.current.onConversationsStale(),
-      STALE_DEBOUNCE_MS
-    );
-  }, []);
-
   const clearTyping = useCallback(() => {
     window.clearTimeout(typingTimerRef.current);
     setTyping(false);
   }, []);
 
-  const loadHistory = useCallback(
-    (chatId: string, adoptCursor: boolean) => {
-      const request = ++historyRequestRef.current;
-      fetchHistory(identifier, externalId, chatId)
-        .then((page) => {
-          if (request !== historyRequestRef.current) return;
-          dispatch({
-            type: 'history/replace',
-            items: page.data,
-            nextCursor: page.next_cursor,
-            adoptCursor,
-          });
-          trackUnread(page.data, !adoptCursor);
-          setHistoryError(false);
-        })
-        .catch(() => {
-          if (request !== historyRequestRef.current) return;
-          if (!stateRef.current.historyLoaded) setHistoryError(true);
+  const loadHistory = useCallback(() => {
+    const request = ++historyRequestRef.current;
+    const live = stateRef.current.historyLoaded;
+    fetchHistory(identifier, externalId)
+      .then((page) => {
+        if (request !== historyRequestRef.current) return;
+        dispatch({
+          type: 'history/replace',
+          items: page.data,
+          chats: page.chats,
+          nextCursor: page.next_cursor,
         });
-    },
-    [identifier, externalId, trackUnread]
-  );
+        trackUnread(page.data, live);
+        setHistoryError(false);
+      })
+      .catch(() => {
+        if (request !== historyRequestRef.current) return;
+        if (!stateRef.current.historyLoaded) setHistoryError(true);
+      });
+  }, [identifier, externalId, trackUnread]);
 
-  const openConversation = useCallback(
-    (chatId: string | null) => {
-      historyRequestRef.current++;
-      activeChatIdRef.current = chatId;
-      clearTyping();
-      setActiveChatId(chatId);
-      setHistoryError(false);
-      dispatch({ type: 'conversation/reset', loaded: chatId === null });
-      if (chatId) loadHistory(chatId, true);
-    },
-    [loadHistory, clearTyping]
-  );
+  const loadHistoryRef = useRef(loadHistory);
+  loadHistoryRef.current = loadHistory;
 
-  const refreshHistory = useCallback(() => {
-    const chatId = activeChatIdRef.current;
-    if (chatId) loadHistory(chatId, false);
+  useEffect(() => {
+    loadHistory();
   }, [loadHistory]);
-
-  const refreshHistoryRef = useRef(refreshHistory);
-  refreshHistoryRef.current = refreshHistory;
 
   useEffect(() => {
     let socket: SocketHandle | null = null;
@@ -175,33 +132,32 @@ export function useChat(
         externalId,
         onMessage: (item) => {
           trackUnread([item], true);
-          if (item.chat_id === activeChatIdRef.current) {
-            if (item.from === 'company') clearTyping();
-            dispatch({ type: 'socket/received', item });
-          } else {
-            markConversationsStale();
-          }
+          if (item.from === 'company') clearTyping();
+          dispatch({ type: 'socket/received', item });
         },
-        onTyping: (chatId) => {
-          if (chatId !== activeChatIdRef.current) return;
+        onTyping: () => {
           setTyping(true);
           window.clearTimeout(typingTimerRef.current);
           typingTimerRef.current = window.setTimeout(() => setTyping(false), TYPING_TTL_MS);
         },
         onChatClosed: (event) => {
-          if (event.chat_id === activeChatIdRef.current) clearTyping();
-          handlersRef.current.onChatClosed(event.chat_id, event.ended_at);
-          markConversationsStale();
+          clearTyping();
+          dispatch({
+            type: 'chat/closed',
+            chatId: event.chat_id,
+            endedAt: event.ended_at ?? new Date().toISOString(),
+            protocol: event.protocol,
+          });
         },
         onState: (current, hadConnected) => {
           if (current === 'connected') {
             setSocketDown(false);
             if (hadConnected) {
               window.clearTimeout(refetchTimerRef.current);
-              refetchTimerRef.current = window.setTimeout(() => {
-                refreshHistoryRef.current();
-                handlersRef.current.onConversationsStale();
-              }, RECONNECT_REFETCH_MS);
+              refetchTimerRef.current = window.setTimeout(
+                () => loadHistoryRef.current(),
+                RECONNECT_REFETCH_MS
+              );
             }
           } else if (
             hadConnected &&
@@ -215,11 +171,10 @@ export function useChat(
     return () => {
       cancelled = true;
       window.clearTimeout(refetchTimerRef.current);
-      window.clearTimeout(staleTimerRef.current);
       window.clearTimeout(typingTimerRef.current);
       socket?.destroy();
     };
-  }, [identifier, externalId, trackUnread, markConversationsStale, clearTyping]);
+  }, [identifier, externalId, trackUnread, clearTyping]);
 
   useEffect(() => {
     const onVisibility = () => setSyncTick((t) => t + 1);
@@ -242,23 +197,12 @@ export function useChat(
       return;
     }
 
-    let unread = unreadIdsRef.current.size;
-    for (const conversation of handlers.conversations) {
-      if (conversation.chat_id === activeChatId) continue;
-      if (conversation.last_message_from !== 'company') continue;
-      const epoch = conversation.last_message_created_at
-        ? Date.parse(conversation.last_message_created_at) || 0
-        : 0;
-      if (epoch <= lastReadRef.current) continue;
-      if (epoch <= (newestByChatRef.current.get(conversation.chat_id) ?? 0)) continue;
-      unread++;
-    }
-
+    const unread = unreadIdsRef.current.size;
     if (lastPostedUnreadRef.current !== unread) {
       lastPostedUnreadRef.current = unread;
       postToLoader({ __pipeelo: true, type: 'unread', count: unread });
     }
-  }, [syncTick, handlers.conversations, activeChatId]);
+  }, [syncTick]);
 
   const notifyVisibility = useCallback((open: boolean) => {
     openRef.current = open;
@@ -289,23 +233,28 @@ export function useChat(
 
   const deliver = useCallback(
     (localId: string, request: () => Promise<SendOutcome>) => {
-      const sentFrom = activeChatIdRef.current;
+      const sentFrom = openChatId(stateRef.current);
       request()
         .then((outcome) => {
-          dispatch({ type: 'send/confirmed', localId, messageId: outcome.messageId ?? localId });
-          if (!outcome.chatId || outcome.chatId === sentFrom) return;
-          if (sentFrom === null) {
-            activeChatIdRef.current = outcome.chatId;
-            setActiveChatId(outcome.chatId);
-            loadHistory(outcome.chatId, true);
-          } else {
-            openConversation(outcome.chatId);
-          }
-          handlersRef.current.onConversationsStale();
+          dispatch({
+            type: 'send/confirmed',
+            localId,
+            messageId: outcome.messageId ?? localId,
+            chatId: outcome.chatId,
+          });
+          if (!sentFrom || !outcome.chatId || outcome.chatId === sentFrom) return;
+          if (stateRef.current.chats.get(sentFrom)?.endedAt) return;
+          dispatch({
+            type: 'chat/closed',
+            chatId: sentFrom,
+            endedAt: new Date().toISOString(),
+            protocol: null,
+          });
+          loadHistory();
         })
         .catch(() => dispatch({ type: 'send/failed', localId }));
     },
-    [openConversation, loadHistory]
+    [loadHistory]
   );
 
   const sendTextMessage = useCallback(
@@ -317,6 +266,7 @@ export function useChat(
         type: 'send/optimistic',
         message: {
           id: localId,
+          chatId: null,
           kind: 'text',
           text,
           mediaUrl: null,
@@ -346,6 +296,7 @@ export function useChat(
         type: 'send/optimistic',
         message: {
           id: localId,
+          chatId: null,
           kind: field,
           text: null,
           mediaUrl: previewUrl,
@@ -367,12 +318,14 @@ export function useChat(
     (messageId: string, item: ApiItem) => {
       const message = stateRef.current.byId.get(messageId);
       if (!message || message.kind !== 'interactive' || message.selectedValue !== null) return;
+      if (message.chatId !== openChatId(stateRef.current)) return;
       dispatch({ type: 'interactive/select', messageId, value: item.value });
       const localId = uuidV4();
       dispatch({
         type: 'send/optimistic',
         message: {
           id: localId,
+          chatId: null,
           kind: 'text',
           text: item.title,
           mediaUrl: null,
@@ -393,7 +346,7 @@ export function useChat(
     (localId: string) => {
       const message = stateRef.current.byId.get(localId);
       if (!message || message.status !== 'failed') return;
-      dispatch({ type: 'send/retry', localId });
+      dispatch({ type: 'send/retry', localId, createdAt: new Date().toISOString() });
       if (message.kind === 'text') {
         deliver(localId, () =>
           sendText(identifier, externalId, message.text ?? '', identityRef.current, message.selectedValue ?? undefined)
@@ -410,40 +363,42 @@ export function useChat(
   );
 
   const loadOlder = useCallback(() => {
-    const chatId = activeChatIdRef.current;
     const cursor = stateRef.current.nextCursor;
-    if (!chatId || !cursor || loadingOlderRef.current) return;
+    if (!cursor || loadingOlderRef.current) return;
     loadingOlderRef.current = true;
     setLoadingOlder(true);
-    const request = historyRequestRef.current;
-    fetchHistory(identifier, externalId, chatId, cursor)
+    fetchHistory(identifier, externalId, cursor)
       .then((page) => {
-        if (request !== historyRequestRef.current) return;
-        dispatch({ type: 'history/prependOlder', items: page.data, nextCursor: page.next_cursor });
+        dispatch({
+          type: 'history/prependOlder',
+          items: page.data,
+          chats: page.chats,
+          nextCursor: page.next_cursor,
+        });
       })
-      .catch(() => {
-      })
+      .catch(() => {})
       .finally(() => {
         loadingOlderRef.current = false;
         setLoadingOlder(false);
       });
   }, [identifier, externalId]);
 
+  const reveal = useCallback(() => dispatch({ type: 'history/reveal' }), []);
+
   return {
     state,
-    activeChatId,
     socketDown,
     typing,
     historyError,
     loadingOlder,
     identity,
-    openConversation,
     sendTextMessage,
     sendFileMessage,
     selectOption,
     retry,
     loadOlder,
-    refreshHistory,
+    reveal,
+    refreshHistory: loadHistory,
     notifyVisibility,
     setIdentity,
     setFormUser,

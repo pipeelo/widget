@@ -43,11 +43,12 @@ export function createSocket(opts: {
   });
   channel.bind('website-channel.chat-closed', (payload: unknown) => {
     if (payload === null || typeof payload !== 'object') return;
-    const data = payload as { chat_id?: unknown; ended_at?: unknown };
+    const data = payload as { chat_id?: unknown; ended_at?: unknown; protocol?: unknown };
     if (typeof data.chat_id !== 'string') return;
     opts.onChatClosed({
       chat_id: data.chat_id,
       ended_at: typeof data.ended_at === 'string' ? data.ended_at : null,
+      protocol: typeof data.protocol === 'string' ? data.protocol : null,
     });
   });
 

@@ -13,17 +13,24 @@ de verdade e dirigir por CDP.
 
 1. **Server same-origin** (Node ≥22, sem deps): serve `dist/` + página host
    fake com o snippet real (`<script async src="/v1/loader.js?id=…">`) + API
-   fake em `/v1/website-channel/{config,conversations,history,message}/:id`.
-   Config decidida pelo id: contém "float" → floating, senão fullscreen;
-   contém "dark" → theme dark; contém "prechat" →
-   `pre_chat_form: {fields:['name','email']}`. `/conversations` é OBRIGATÓRIA
-   (o gate do pré-chat e o landing dependem dela): vazia para visitante novo;
-   guardar os POSTs de message por `external_id` e devolver 1 conversa aberta
-   depois do primeiro — history devolve os mesmos itens (DESC). POST message →
-   `201 {message_id, chat_id}`; expor `GET /__log` com os bodies (assert do
-   bloco `user`) e `POST /__reset`. Página host aceita `?setuser=full|partial|
-   bademail` para injetar `Pipeelo('setUser', …)` no snippet. Registrar as
-   rotas da API ANTES do estático (ambos sob `/v1/`).
+   fake em `/v1/website-channel/{config,history,message}/:id` (`/conversations`
+   NÃO é chamada pelo painel — responder 410 pega regressão). Config decidida
+   pelo id: contém "float" → floating, senão fullscreen; contém "dark" → theme
+   dark; contém "prechat" → `pre_chat_form: {fields:['name','email']}`.
+   `/history` é a fonte do landing e do gate do pré-chat: linha do tempo
+   inteira (sem `chat_id`), DESC, com `per_page`/`cursor` de verdade (várias
+   páginas) e o bloco `chats` (`chat_id`, `protocol`, `started_at`, `ended_at`)
+   dos atendimentos presentes na página. Fixture útil: 2 atendimentos
+   encerrados + 1 aberto com ~40 mensagens (página 1 cabe inteira no aberto);
+   variantes por id — "short" (aberto curto: página 1 já cruza os antigos),
+   "closed" (nada aberto), "empty" (visitante novo), "silentclose" (o POST
+   responde `chat_id` novo sem evento). POST message → `201 {message_id,
+   chat_id}` — `chat_id` novo quando o último atendimento está encerrado — e
+   guardar as mensagens por `id|external_id` para o refetch mostrá-las. Expor
+   `GET /__log` com TODAS as requests da API (kind, query, body: prova o mínimo
+   de requests e o bloco `user`) e `POST /__reset`. Página host aceita
+   `?setuser=full|partial|bademail` para injetar `Pipeelo('setUser', …)` no
+   snippet. Registrar as rotas da API ANTES do estático (ambos sob `/v1/`).
 2. **Build apontando para o server**: `VITE_API_URL=http://127.0.0.1:<porta>/v1 npm run build`
    (a env vence o `.env.local`; `npm run build` puro restaura o build normal).
 3. **Chrome headless**: `google-chrome --headless=new --no-sandbox --disable-gpu
@@ -84,11 +91,23 @@ não existirem mais, reescrever seguindo os passos acima (~150 linhas).
   → form só com o que falta; `setuser=bademail` → form pede o e-mail (inválido
   não cobre); `Pipeelo('setUser', …)` completo COM o form aberto → dispensa
   sozinho; aba nova (token persistido, conversa existente) → sem form.
-- **Segurança do gate vs. regressão de prod** (atrasar só `/conversations` no
+- **Segurança do gate vs. regressão de prod** (atrasar só `/history` no
   server fake dá o teste determinístico): canal COM política → composer
   segurado (envio+anexo `disabled`) durante o boot, até o form assumir; canal
-  SEM política → composer liberado assim que a config chega, ANTES das
-  conversas — canal sem pré-chat não pode pagar nada pelo gate.
+  SEM política → composer liberado assim que a config chega, ANTES do
+  histórico — canal sem pré-chat não pode pagar nada pelo gate.
+- **Histórico contínuo**: boot com chat aberto longo → 30 `.msg-row`, sem
+  `.older-chip`, `/__log` = config + history (nunca conversations);
+  `messages.scrollTop = 0` → 1 history com `cursor`, chat aberto completo
+  visível, `.older-chip` aparece e o passado fica escondido (sem
+  `.closed-notice`); novo scroll ao topo NÃO busca; clique no chip → revela
+  sem request, `.closed-notice` por atendimento encerrado (data + protocolo)
+  fechando o bloco ANTES do `.day-label` seguinte, `.msg-option` `disabled`
+  fora do aberto; posição de scroll preservada na prepend (medir o `top` de um
+  balão no MESMO eval que zera o `scrollTop`, antes da página chegar) e peek
+  de meia tela no reveal. Id "closed" → welcome + chip; enviar abre chat novo
+  sem refetch e o balão fica visível. "silentclose" → etiqueta imediata +
+  exatamente 1 refetch, com o protocolo do servidor na etiqueta.
 - **Boot frio com rede lenta** (latência percebida): perfil novo +
   `localStorage.clear()` + `Network.setCacheDisabled` +
   `Network.emulateNetworkConditions` (150ms/750kbps). Tap na bolha →
