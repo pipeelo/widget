@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from 'preact/hooks';
 import type { WidgetUser } from '../../shared/protocol';
 import { uuidV4 } from '../../shared/uuid';
-import { fetchHistory, sendFile, sendText } from '../api/client';
+import { fetchHistory, openChat, sendFile, sendText } from '../api/client';
 import type { ApiItem, ApiMessage, MediaField, SendOutcome } from '../api/types';
 import { postToLoader } from '../bridge';
 import { chime, previewOf } from '../lib/attention';
@@ -11,6 +11,7 @@ import { chatReducer, initialChatState, openChatId, type ChatState } from './sto
 
 const RECONNECT_REFETCH_MS = 2000;
 const TYPING_TTL_MS = 8000;
+const TYPING_HOLD_MS = 60000;
 
 export interface ChatController {
   state: ChatState;
@@ -51,6 +52,7 @@ export function useChat(
   const historyRequestRef = useRef(0);
   const refetchTimerRef = useRef<number | undefined>(undefined);
   const typingTimerRef = useRef<number | undefined>(undefined);
+  const typingHoldRef = useRef(false);
 
   const hostUserRef = useRef<WidgetUser | null>(null);
   const formUserRef = useRef<WidgetUser | null>(null);
@@ -90,6 +92,7 @@ export function useChat(
   }, []);
 
   const clearTyping = useCallback(() => {
+    typingHoldRef.current = false;
     window.clearTimeout(typingTimerRef.current);
     setTyping(false);
   }, []);
@@ -119,8 +122,24 @@ export function useChat(
   loadHistoryRef.current = loadHistory;
 
   useEffect(() => {
-    loadHistory();
-  }, [loadHistory]);
+    let cancelled = false;
+    void openChat(identifier, externalId).then((chatId) => {
+      if (cancelled) return;
+      if (chatId) {
+        typingHoldRef.current = true;
+        setTyping(true);
+        window.clearTimeout(typingTimerRef.current);
+        typingTimerRef.current = window.setTimeout(() => {
+          typingHoldRef.current = false;
+          setTyping(false);
+        }, TYPING_HOLD_MS);
+      }
+      loadHistory();
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [identifier, externalId, loadHistory]);
 
   useEffect(() => {
     let socket: SocketHandle | null = null;
@@ -137,6 +156,7 @@ export function useChat(
         },
         onTyping: () => {
           setTyping(true);
+          if (typingHoldRef.current) return;
           window.clearTimeout(typingTimerRef.current);
           typingTimerRef.current = window.setTimeout(() => setTyping(false), TYPING_TTL_MS);
         },

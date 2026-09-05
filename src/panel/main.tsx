@@ -5,7 +5,7 @@ import './styles.css';
 
 function readHashParams(): URLSearchParams {
   const raw = location.hash.charAt(0) === '#' ? location.hash.slice(1) : location.hash;
-  return new URLSearchParams(raw);
+  return new URLSearchParams(raw || location.search);
 }
 
 function parseParams(hash: URLSearchParams): PanelParams | null {

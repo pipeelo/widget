@@ -49,6 +49,25 @@ export async function fetchHistory(
   }
 }
 
+export async function openChat(identifier: string, externalId: string): Promise<string | null> {
+  const t = withTimeout(15000);
+  try {
+    const res = await fetch(endpoint('open', identifier), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ external_id: externalId }),
+      signal: t.signal,
+    });
+    if (!res.ok) return null;
+    const body = (await res.json()) as { chat_id?: unknown };
+    return typeof body.chat_id === 'string' ? body.chat_id : null;
+  } catch {
+    return null;
+  } finally {
+    t.clear();
+  }
+}
+
 async function parseSendResponse(res: Response): Promise<SendOutcome> {
   if (res.status === 201) {
     const body = (await res.json()) as { message_id?: unknown; chat_id?: unknown };
