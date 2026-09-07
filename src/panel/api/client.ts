@@ -1,6 +1,6 @@
 import type { WidgetUser } from '../../shared/protocol';
 import { ENV } from '../env';
-import type { HistoryPage, MediaField, SendOutcome, WidgetConfig } from './types';
+import type { HistoryPage, MediaField, PushSubscriptionPayload, SendOutcome, WidgetConfig } from './types';
 
 function endpoint(path: string, identifier: string): string {
   return `${ENV.apiUrl}/website-channel/${path}/${encodeURIComponent(identifier)}`;
@@ -49,13 +49,17 @@ export async function fetchHistory(
   }
 }
 
-export async function openChat(identifier: string, externalId: string): Promise<string | null> {
+export async function openChat(
+  identifier: string,
+  externalId: string,
+  pushSupported: boolean
+): Promise<string | null> {
   const t = withTimeout(15000);
   try {
     const res = await fetch(endpoint('open', identifier), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify({ external_id: externalId }),
+      body: JSON.stringify({ external_id: externalId, push_supported: pushSupported }),
       signal: t.signal,
     });
     if (!res.ok) return null;
@@ -63,6 +67,36 @@ export async function openChat(identifier: string, externalId: string): Promise<
     return typeof body.chat_id === 'string' ? body.chat_id : null;
   } catch {
     return null;
+  } finally {
+    t.clear();
+  }
+}
+
+export function markRead(identifier: string, externalId: string, at: string): void {
+  void fetch(endpoint('read', identifier), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify({ external_id: externalId, at }),
+    keepalive: true,
+  }).catch(() => {});
+}
+
+export async function subscribePush(
+  identifier: string,
+  externalId: string,
+  subscription: PushSubscriptionPayload
+): Promise<boolean> {
+  const t = withTimeout(15000);
+  try {
+    const res = await fetch(endpoint('push', identifier), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ external_id: externalId, ...subscription }),
+      signal: t.signal,
+    });
+    return res.ok;
+  } catch {
+    return false;
   } finally {
     t.clear();
   }

@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from 'preact/hooks';
 import type { WidgetUser } from '../../shared/protocol';
 import { uuidV4 } from '../../shared/uuid';
-import { fetchHistory, openChat, sendFile, sendText } from '../api/client';
+import { fetchHistory, markRead, openChat, sendFile, sendText } from '../api/client';
 import type { ApiItem, ApiMessage, MediaField, SendOutcome } from '../api/types';
 import { postToLoader } from '../bridge';
 import { chime, previewOf } from '../lib/attention';
 import { composeIdentity } from '../lib/pre-chat';
+import { isPushEligible } from '../push';
 import type { SocketHandle } from '../realtime/socket';
 import { chatReducer, initialChatState, openChatId, type ChatState } from './store';
 
@@ -20,6 +21,7 @@ export interface ChatController {
   historyError: boolean;
   loadingOlder: boolean;
   identity: WidgetUser | null;
+  companyReplied: boolean;
   sendTextMessage(text: string): void;
   sendFileMessage(field: MediaField, file: File): void;
   selectOption(messageId: string, item: ApiItem): void;
@@ -42,6 +44,7 @@ export function useChat(
   const [historyError, setHistoryError] = useState(false);
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [typing, setTyping] = useState(false);
+  const [companyReplied, setCompanyReplied] = useState(false);
   const [syncTick, setSyncTick] = useState(0);
 
   const stateRef = useRef(state);
@@ -70,6 +73,7 @@ export function useChat(
     let freshEpoch = 0;
     for (const item of items) {
       if (item.from !== 'company') continue;
+      setCompanyReplied(true);
       const epoch = Date.parse(item.created_at) || 0;
       if (epoch > (newestCompanyRef.current?.epoch ?? 0)) {
         newestCompanyRef.current = { epoch, iso: item.created_at };
@@ -128,7 +132,7 @@ export function useChat(
 
   useEffect(() => {
     let cancelled = false;
-    void openChat(identifier, externalId).then((chatId) => {
+    void openChat(identifier, externalId, isPushEligible()).then((chatId) => {
       if (cancelled) return;
       if (chatId) {
         typingHoldRef.current = true;
@@ -213,6 +217,7 @@ export function useChat(
       if (newest && newest.epoch > lastReadRef.current) {
         lastReadRef.current = newest.epoch;
         postToLoader({ __pipeelo: true, type: 'read', at: newest.iso });
+        markRead(identifier, externalId, newest.iso);
       }
       unreadIdsRef.current.clear();
       if (lastPostedUnreadRef.current !== 0) {
@@ -432,6 +437,7 @@ export function useChat(
     historyError,
     loadingOlder,
     identity,
+    companyReplied,
     sendTextMessage,
     sendFileMessage,
     selectOption,

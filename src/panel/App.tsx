@@ -10,9 +10,11 @@ import { Footer } from './components/Footer';
 import { Header } from './components/Header';
 import { MessageList } from './components/MessageList';
 import { PreChatForm } from './components/PreChatForm';
+import { PushInvite } from './components/PushInvite';
 import { mineBubbleColor } from './lib/bubble-color';
 import { missingPreChatFields } from './lib/pre-chat';
 import { STR } from './lib/strings';
+import { dismissPush, enablePush, ensureSubscribed, isPushDismissed, isPushEligible, syncPush } from './push';
 import { useChat } from './state/useChat';
 
 export interface PanelParams {
@@ -151,6 +153,37 @@ export function App({ params }: { params: PanelParams }) {
     return () => document.removeEventListener('keydown', onKeyDown);
   }, [fullscreen]);
 
+  const pushKey = config?.push_public_key || null;
+  const [pushInvite, setPushInvite] = useState(false);
+  const [pushBusy, setPushBusy] = useState(false);
+  useEffect(() => {
+    if (!pushKey || !isPushEligible()) return;
+    if (Notification.permission === 'granted') {
+      void ensureSubscribed(pushKey)
+        .then((subscription) => subscription && syncPush(params.id, params.eid, subscription))
+        .catch(() => {});
+      return;
+    }
+    setPushInvite(Notification.permission === 'default' && !isPushDismissed(params.id));
+  }, [pushKey, params.id, params.eid]);
+
+  const onEnablePush = () => {
+    if (!pushKey || pushBusy) return;
+    setPushBusy(true);
+    enablePush(pushKey)
+      .then((subscription) => (subscription ? syncPush(params.id, params.eid, subscription) : undefined))
+      .catch(() => {})
+      .finally(() => {
+        setPushBusy(false);
+        setPushInvite(false);
+      });
+  };
+
+  const onDismissPush = () => {
+    dismissPush(params.id);
+    setPushInvite(false);
+  };
+
   const lastMediaRefreshRef = useRef(0);
   const onMediaError = useCallback(() => {
     const now = Date.now();
@@ -195,6 +228,9 @@ export function App({ params }: { params: PanelParams }) {
             onMediaError={onMediaError}
             onSelectOption={chat.selectOption}
           />
+          {pushInvite && chat.companyReplied && (
+            <PushInvite busy={pushBusy} onEnable={onEnablePush} onDismiss={onDismissPush} />
+          )}
           <Composer
             onSendText={chat.sendTextMessage}
             onSendFile={chat.sendFileMessage}

@@ -69,3 +69,8 @@ export interface SendOutcome {
   messageId: string | null;
   chatId: string | null;
 }
+
+export interface PushSubscriptionPayload {
+  endpoint: string;
+  keys: { p256dh: string; auth: string };
+}

@@ -7,6 +7,7 @@ export interface WidgetConfig {
   display_mode?: string | null;
   pre_chat_form?: { fields?: string[] | null } | null;
   launcher_image?: string | null;
+  push_public_key?: string | null;
 }
 
 export type DisplayMode = 'floating' | 'fullscreen';
