@@ -1,4 +1,4 @@
-import type { ApiItem, ApiMessage, ChatSummary } from '../api/types';
+import type { ApiItem, ApiLink, ApiMessage, ChatSummary } from '../api/types';
 
 export type SendStatus = 'sending' | 'sent' | 'failed';
 export type MessageKind =
@@ -23,6 +23,7 @@ export interface ChatMessage {
   text: string | null;
   mediaUrl: string | null;
   items: ApiItem[] | null;
+  link: ApiLink | null;
   selectedValue: string | null;
   pix: PixDetails | null;
   from: 'company' | 'customer';
@@ -80,6 +81,14 @@ function itemsFromApi(raw: ApiMessage['items']): ApiItem[] | null {
   return items.length > 0 ? items : null;
 }
 
+function linkFromApi(raw: ApiMessage['link']): ApiLink | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const { label, url } = raw;
+  if (typeof label !== 'string' || !label) return null;
+  if (typeof url !== 'string' || !/^https?:\/\//i.test(url)) return null;
+  return { label, url };
+}
+
 function pixFromApi(item: ApiMessage): PixDetails | null {
   if ((item.type || '').toLowerCase() !== 'order_details') return null;
   if (typeof item.code !== 'string' || !item.code) return null;
@@ -98,6 +107,7 @@ export function fromApi(item: ApiMessage): ChatMessage {
     text: item.text ?? null,
     mediaUrl: item.media_url ?? null,
     items: itemsFromApi(item.items),
+    link: linkFromApi(item.link),
     selectedValue: typeof item.selected_value === 'string' ? item.selected_value : null,
     pix: pixFromApi(item),
     from: item.from === 'company' ? 'company' : 'customer',

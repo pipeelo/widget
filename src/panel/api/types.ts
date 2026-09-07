@@ -8,6 +8,11 @@ export interface ApiItem {
   description?: string | null;
 }
 
+export interface ApiLink {
+  label: string;
+  url: string;
+}
+
 export interface ApiMessage {
   message_id: string;
   chat_id: string;
@@ -15,6 +20,7 @@ export interface ApiMessage {
   type: string;
   text: string | null;
   items?: ApiItem[] | null;
+  link?: ApiLink | null;
   selected_value?: string | null;
   product_name?: string | null;
   code?: string | null;

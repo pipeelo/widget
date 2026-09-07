@@ -93,6 +93,18 @@ export function MessageBubble(props: {
           }
         />
       )}
+      {message.link && !mine && (
+        <div class="msg-options">
+          <a
+            class="msg-option"
+            href={message.link.url}
+            target="_blank"
+            rel="noopener noreferrer nofollow"
+          >
+            {message.link.label}
+          </a>
+        </div>
+      )}
       {message.status === 'failed' && (
         <button
           type="button"
