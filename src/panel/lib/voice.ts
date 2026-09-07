@@ -20,6 +20,47 @@ export function pickMime(): string {
   return MIME_CANDIDATES.find((mime) => MediaRecorder.isTypeSupported(mime)) ?? '';
 }
 
+interface MicPolicy {
+  allowsFeature(feature: string): boolean;
+}
+
+export type MicPolicyState = 'allowed' | 'blocked' | 'unknown';
+
+let micWarned = false;
+
+export function micPolicyState(): MicPolicyState {
+  const policy = (document as Document & { featurePolicy?: MicPolicy }).featurePolicy;
+  if (!policy) return 'unknown';
+  try {
+    return policy.allowsFeature('microphone') ? 'allowed' : 'blocked';
+  } catch {
+    return 'unknown';
+  }
+}
+
+export function micPolicyBlocked(): boolean {
+  return micPolicyState() === 'blocked';
+}
+
+export function warnMic(err: unknown): void {
+  if (micWarned) return;
+  micWarned = true;
+  const fault =
+    err instanceof DOMException
+      ? `${err.name}: ${err.message}`
+      : 'microfone não delegado ao iframe do chat';
+  try {
+    console.warn(
+      `[Pipeelo] microfone indisponível — ${fault}\n` +
+        `contexto seguro: ${window.isSecureContext} | dentro de iframe: ${window.parent !== window} | ` +
+        `Permissions-Policy: ${micPolicyState()} | origem do painel: ${location.origin}\n` +
+        'Se o site publica Permissions-Policy, ela precisa delegar o microfone para o painel: ' +
+        `Permissions-Policy: microphone=(self "${location.origin}")`
+    );
+  } catch {
+  }
+}
+
 export function voiceSupported(): boolean {
   return (
     window.isSecureContext === true &&

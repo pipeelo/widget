@@ -73,6 +73,15 @@ não existirem mais, reescrever seguindo os passos acima (~150 linhas).
   indefinido → botão enviar clássico. Embed same-origin NÃO prova o
   `allow="microphone"` do loader (filho same-origin já herda) — para provar,
   host em `localhost` e loader em `127.0.0.1` (`?loader=`).
+- **Microfone cross-origin** (não reproduz em same-origin): host servindo
+  `Permissions-Policy` — `microphone=()` e `microphone=(self)` bloqueiam o painel
+  MESMO com `Browser.grantPermissions audioCapture`; `microphone=*` e
+  `microphone=(self "<origem do painel>")` liberam. Bloqueado = toast "Este site
+  não liberou o microfone…" + `console.warn` `[Pipeelo]`; negado pelo visitante
+  (`Browser.setPermission` denied só na origem do painel) = toast "Permita o
+  acesso…". Ler o painel por CDP exige a sessão do OOPIF (`Target.setAutoAttach`
+  flatten + achar o alvo cujo `location.href` tem `/v1/`) — a URL que vem no
+  `Target.attachedToTarget` ainda é `about:blank`.
 - Fechar no X **com o campo focado** (caminho pointerdown) — e de novo com o
   "teclado" simulado aberto.
 - **Teclado iOS simulado**: `Object.defineProperty(window,'visualViewport',

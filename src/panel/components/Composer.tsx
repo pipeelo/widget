@@ -5,7 +5,7 @@ import { STR } from '../lib/strings';
 import { formatDuration } from '../lib/time';
 import { VOICE_MAX_MS } from '../lib/voice';
 import { drawBars, liveBars } from '../lib/wave';
-import { useVoiceRecorder } from '../state/useVoiceRecorder';
+import { useVoiceRecorder, type VoiceError } from '../state/useVoiceRecorder';
 import { AttachMenu } from './AttachMenu';
 
 function PaperclipIcon() {
@@ -56,6 +56,13 @@ function TrashIcon() {
     </svg>
   );
 }
+
+const VOICE_MESSAGES: Record<VoiceError, string> = {
+  blocked: STR.micBlocked,
+  denied: STR.micDenied,
+  unavailable: STR.micUnavailable,
+  failed: STR.audioFailed,
+};
 
 function RecordingWave({ levels }: { levels: number[] }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -127,13 +134,8 @@ export function Composer(props: {
 
   useEffect(() => {
     if (!voice.error) return;
-    showError(
-      voice.error === 'denied'
-        ? STR.micDenied
-        : voice.error === 'unavailable'
-          ? STR.micUnavailable
-          : STR.audioFailed
-    );
+    showError(VOICE_MESSAGES[voice.error]);
+    voice.clearError();
   }, [voice.error]);
 
   useEffect(() => {

@@ -15,6 +15,7 @@ export const STR = {
   recording: 'Gravando…',
   recordTooShort: 'Gravação muito curta.',
   micDenied: 'Permita o acesso ao microfone para gravar.',
+  micBlocked: 'Este site não liberou o microfone para o chat.',
   micUnavailable: 'Nenhum microfone encontrado.',
   audioFailed: 'Não foi possível gravar o áudio.',
   playAudio: 'Reproduzir áudio',

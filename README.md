@@ -23,6 +23,31 @@ Pipeelo('close');  // fecha
 Pipeelo('toggle'); // alterna
 ```
 
+## Mensagens de voz (microfone no site)
+
+O painel roda em iframe de **outra origem**, então o microfone só chega nele se o site que embute delegar a permissão. O loader já faz a parte dele (`allow="microphone"` no iframe), mas o cabeçalho `Permissions-Policy` do site tem a palavra final — e quando ele veta, a permissão concedida no navegador não adianta: `getUserMedia` devolve `NotAllowedError`, o painel mostra "Este site não liberou o microfone para o chat." e escreve o motivo no console.
+
+| `Permissions-Policy` do site | Grava áudio? |
+|---|---|
+| ausente (padrão) | sim — o allowlist padrão `self` permite delegar via `allow` |
+| `microphone=*` | sim |
+| `microphone=(self "https://widget.pipeelo.com")` | sim |
+| `microphone=(self)` | **não** — `self` declarado não delega para outra origem |
+| `microphone=()` | **não** |
+
+Quem já publica `Permissions-Policy` (plugin de segurança de WordPress, Transform Rule da Cloudflare, `next.config.js`, middleware de headers) precisa incluir a origem do widget na lista. Sem cabeçalho nenhum, funciona.
+
+Outros motivos para o mic falhar, todos fora do alcance do widget:
+
+- **Site em HTTP**: sem contexto seguro o navegador não expõe `mediaDevices` — o botão de mic nem aparece (o composer fica com o botão de enviar clássico).
+- **Site dentro de outro iframe** (page builder, preview, portal): a delegação precisa existir em **todos** os níveis; o iframe de fora também precisa de `allow="microphone"`.
+- **Visitante negou o pedido**: o navegador guarda o "não" para a origem do widget dentro daquele site — mensagem "Permita o acesso ao microfone para gravar.". No Chrome o bloqueio aparece no cadeado do site, atribuído à origem do widget, não ao site.
+- **Navegador embutido de app** (Instagram, Facebook) e WebView sem tratamento de permissão: veja o embed em app abaixo.
+
+Sempre que o mic falha, o painel escreve **um** `console.warn` com o diagnóstico pronto — a `DOMException` crua, se o contexto é seguro, se está em iframe e o estado da `Permissions-Policy` (`allowed`/`blocked`/`unknown` — o Safari não expõe a API). O Chrome ainda loga por conta própria `Permissions policy violation: microphone is not allowed in this document.` quando o bloqueio é de política.
+
+Para diagnosticar um site real sem DevTools do lado do cliente, [`scripts/mic-check.js`](./scripts/mic-check.js) é um snippet autocontido: **abra o chat primeiro** (o iframe precisa existir) e cole no console da página — ou salve como favorito com `javascript:` na frente e toque nele no celular, que o resultado sai num `alert`. Ele lê o cabeçalho da própria página, o `allow` do iframe, a permissão do navegador, roda um `getUserMedia` de teste e fecha com o veredito: cabeçalho do site, loader velho em cache, iframe externo, HTTPS ausente ou "nada bloqueia pelo site".
+
 ## Embed em app (tela cheia)
 
 Canal com `display_mode: 'fullscreen'` na config: o chat **é** a página — o loader abre o painel no boot ocupando a viewport inteira, sem bolha, sem teaser e sem fechar (`Pipeelo('close')` vira no-op). Feito para WebView de app nativo (chat in-app). O painel aplica a **densidade mobile** (texto 16px, alvos de toque de 44–48px, safe areas de notch/home indicator) — a mesma usada em qualquer dispositivo de toque.
@@ -52,7 +77,8 @@ Página wrapper mínima que o app carrega na WebView:
 
 - **A `<meta viewport>` acima é obrigatória**: sem ela o iOS usa o viewport legado de 980px e tudo renderiza ~2.6× menor. O loader injeta essa meta como rede de segurança quando não existe nenhuma (nunca sobrescreve a do autor). `viewport-fit=cover` habilita as safe areas (`env(safe-area-inset-*)`); `interactive-widget=resizes-content` faz o teclado do Android redimensionar o layout (Chromium ≥ 108; o iOS ignora — lá o loader compensa via `visualViewport`).
 - **iOS (WKWebView)**: `webView.scrollView.contentInsetAdjustmentBehavior = .never` (senão o sistema soma os insets duas vezes) e, para sensação nativa, `webView.scrollView.bounces = false`.
-- **Android (WebView)**: activity edge-to-edge (padrão com target SDK 35+) e `android:windowSoftInputMode="adjustResize"` para o teclado.
+- **Android (WebView)**: activity edge-to-edge (padrão com target SDK 35+) e `android:windowSoftInputMode="adjustResize"` para o teclado. Para as mensagens de voz: permissão `RECORD_AUDIO` no manifesto **e** `WebChromeClient.onPermissionRequest` concedendo `RESOURCE_AUDIO_CAPTURE` — sem isso o WebView nega o microfone em silêncio.
+- **iOS (WKWebView) e voz**: `WKUIDelegate.webView(_:requestMediaCapturePermissionFor:…)` respondendo `.grant` (iOS 15+) e `NSMicrophoneUsageDescription` no Info.plist.
 
 ## Anatomia
 

@@ -1,11 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
-import { createRecorder, VOICE_MIN_MS, voiceFile, voiceSupported } from '../lib/voice';
+import {
+  createRecorder,
+  micPolicyBlocked,
+  VOICE_MIN_MS,
+  voiceFile,
+  voiceSupported,
+  warnMic,
+} from '../lib/voice';
 import { toPeaks } from '../lib/wave';
 
 const TICK_MS = 50;
 const LIVE_LEVELS = 240;
 
-export type VoiceError = 'denied' | 'unavailable' | 'failed';
+export type VoiceError = 'blocked' | 'denied' | 'unavailable' | 'failed';
 export type VoiceState = 'idle' | 'recording';
 
 export interface VoiceResult {
@@ -21,7 +28,9 @@ interface VoiceAnalyser {
 
 function errorKind(err: unknown): VoiceError {
   const name = err instanceof DOMException ? err.name : '';
-  if (name === 'NotAllowedError' || name === 'SecurityError') return 'denied';
+  if (name === 'NotAllowedError' || name === 'SecurityError') {
+    return micPolicyBlocked() ? 'blocked' : 'denied';
+  }
   if (name === 'NotFoundError' || name === 'OverconstrainedError') return 'unavailable';
   return 'failed';
 }
@@ -85,6 +94,8 @@ export function useVoiceRecorder() {
     setState('idle');
   }, []);
 
+  const clearError = useCallback(() => setError(null), []);
+
   const cancel = useCallback(() => {
     abortedRef.current = true;
     const rec = recorderRef.current;
@@ -99,6 +110,11 @@ export function useVoiceRecorder() {
 
   const start = useCallback(async () => {
     if (busyRef.current || !supported) return;
+    if (micPolicyBlocked()) {
+      warnMic(null);
+      setError('blocked');
+      return;
+    }
     busyRef.current = true;
     abortedRef.current = false;
     setError(null);
@@ -107,6 +123,7 @@ export function useVoiceRecorder() {
       stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     } catch (err) {
       busyRef.current = false;
+      warnMic(err);
       setError(errorKind(err));
       return;
     }
@@ -182,5 +199,5 @@ export function useVoiceRecorder() {
     [release]
   );
 
-  return { supported, state, elapsedMs, levels, error, start, stop, cancel };
+  return { supported, state, elapsedMs, levels, error, start, stop, cancel, clearError };
 }
