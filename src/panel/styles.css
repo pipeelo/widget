@@ -601,32 +601,11 @@ button {
   height: var(--pip-icon-audio);
 }
 
-.msg-audio-track {
-  position: relative;
+.msg-audio-wave {
   flex: 1;
   min-width: 0;
-  height: 4px;
-  border-radius: 999px;
+  height: 24px;
   cursor: pointer;
-}
-
-.msg-audio-track::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 999px;
-  background: currentColor;
-  opacity: 0.24;
-}
-
-.msg-audio-fill {
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  border-radius: 999px;
-  background: currentColor;
-  opacity: 0.9;
 }
 
 .msg-audio-time {
@@ -1099,12 +1078,11 @@ button {
   font-variant-numeric: tabular-nums;
 }
 
-.composer-rec-hint {
-  font: 400 var(--pip-fs-meta) / 1 var(--pip-font);
-  color: var(--pip-text-soft);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.composer-wave {
+  flex: 1;
+  min-width: 0;
+  height: 24px;
+  color: var(--pip-primary);
 }
 
 @keyframes pip-rec {

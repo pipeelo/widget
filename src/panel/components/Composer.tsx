@@ -4,6 +4,7 @@ import { classifyFile, FILE_ACCEPT } from '../lib/files';
 import { STR } from '../lib/strings';
 import { formatDuration } from '../lib/time';
 import { VOICE_MAX_MS } from '../lib/voice';
+import { drawBars, liveBars } from '../lib/wave';
 import { useVoiceRecorder } from '../state/useVoiceRecorder';
 import { AttachMenu } from './AttachMenu';
 
@@ -56,9 +57,20 @@ function TrashIcon() {
   );
 }
 
+function RecordingWave({ levels }: { levels: number[] }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (canvas) drawBars(canvas, liveBars(levels, canvas.clientWidth), 1);
+  }, [levels]);
+
+  return <canvas ref={canvasRef} class="composer-wave" role="img" aria-label={STR.recording} />;
+}
+
 export function Composer(props: {
   onSendText(text: string): void;
-  onSendFile(field: MediaField, file: File): void;
+  onSendFile(field: MediaField, file: File, peaks?: number[] | null): void;
   focusToken: number;
   open: boolean;
   disabled?: boolean;
@@ -133,7 +145,7 @@ export function Composer(props: {
     sendingVoiceRef.current = true;
     void voice.stop().then((result) => {
       sendingVoiceRef.current = false;
-      if (result) props.onSendFile('audio', result.file);
+      if (result) props.onSendFile('audio', result.file, result.peaks);
       else showError(STR.recordTooShort);
     });
   };
@@ -211,7 +223,7 @@ export function Composer(props: {
               <span class="composer-rec-time" aria-hidden="true">
                 {formatDuration(voice.elapsedMs)}
               </span>
-              <span class="composer-rec-hint">{STR.recording}</span>
+              <RecordingWave levels={voice.levels} />
             </div>
           </>
         ) : (

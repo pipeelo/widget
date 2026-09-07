@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { STR } from '../lib/strings';
 import { formatDuration } from '../lib/time';
+import { drawBars, waveBars } from '../lib/wave';
 
 const DURATION_FIX_TIMEOUT_MS = 3000;
 
@@ -27,8 +28,9 @@ function finiteDuration(el: HTMLAudioElement): number | null {
   return Number.isFinite(value) && value > 0 ? value : null;
 }
 
-export function AudioMessage(props: { url: string; onMediaError(): void }) {
+export function AudioMessage(props: { url: string; peaks: number[] | null; onMediaError(): void }) {
   const audioRef = useRef<HTMLAudioElement>(null);
+  const waveRef = useRef<HTMLCanvasElement>(null);
   const fixingRef = useRef(false);
   const fixTimerRef = useRef(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -109,7 +111,19 @@ export function AudioMessage(props: { url: string; onMediaError(): void }) {
     else el.pause();
   };
 
-  const percent = duration ? Math.min(100, (current / duration) * 100) : 0;
+  const played = duration ? Math.min(1, current / duration) : 0;
+
+  useEffect(() => {
+    const canvas = waveRef.current;
+    if (!canvas) return;
+    const draw = () => drawBars(canvas, waveBars(props.peaks, canvas.clientWidth), played);
+    draw();
+    if (typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(draw);
+    observer.observe(canvas);
+    return () => observer.disconnect();
+  }, [props.peaks, played]);
+
   const label =
     isPlaying || current > 0
       ? formatDuration(current * 1000)
@@ -127,8 +141,9 @@ export function AudioMessage(props: { url: string; onMediaError(): void }) {
       >
         {isPlaying ? <PauseIcon /> : <PlayIcon />}
       </button>
-      <div
-        class="msg-audio-track"
+      <canvas
+        ref={waveRef}
+        class="msg-audio-wave"
         aria-hidden="true"
         onClick={(event) => {
           const el = audioRef.current;
@@ -138,9 +153,7 @@ export function AudioMessage(props: { url: string; onMediaError(): void }) {
           el.currentTime = ratio * duration;
           setCurrent(el.currentTime);
         }}
-      >
-        <span class="msg-audio-fill" style={{ width: `${percent}%` }} />
-      </div>
+      />
       <span class="msg-audio-time">{label}</span>
       <audio
         ref={audioRef}

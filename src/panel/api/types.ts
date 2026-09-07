@@ -35,6 +35,7 @@ export interface ApiMessage {
   contacts?: ApiContact[] | null;
   emoji?: string | null;
   filename?: string | null;
+  peaks?: number[] | null;
   media_url: string | null;
   from: MessageFrom;
   created_at: string;

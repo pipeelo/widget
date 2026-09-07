@@ -23,7 +23,7 @@ export interface ChatController {
   identity: WidgetUser | null;
   companyReplied: boolean;
   sendTextMessage(text: string): void;
-  sendFileMessage(field: MediaField, file: File): void;
+  sendFileMessage(field: MediaField, file: File, peaks?: number[] | null): void;
   selectOption(messageId: string, item: ApiItem): void;
   retry(localId: string): void;
   loadOlder(): void;
@@ -308,6 +308,7 @@ export function useChat(
           contacts: null,
           emoji: null,
           filename: null,
+          peaks: null,
           from: 'customer',
           createdAt: new Date().toISOString(),
           status: 'sending',
@@ -319,7 +320,7 @@ export function useChat(
   );
 
   const sendFileMessage = useCallback(
-    (field: MediaField, file: File) => {
+    (field: MediaField, file: File, peaks: number[] | null = null) => {
       const localId = uuidV4();
       let previewUrl: string | null = null;
       try {
@@ -343,13 +344,14 @@ export function useChat(
           contacts: null,
           emoji: null,
           filename: null,
+          peaks,
           from: 'customer',
           createdAt: new Date().toISOString(),
           status: 'sending',
           pendingFile: file,
         },
       });
-      deliver(localId, () => sendFile(identifier, externalId, field, file, identityRef.current));
+      deliver(localId, () => sendFile(identifier, externalId, field, file, identityRef.current, peaks));
     },
     [identifier, externalId, deliver]
   );
@@ -377,6 +379,7 @@ export function useChat(
           contacts: null,
           emoji: null,
           filename: null,
+          peaks: null,
           from: 'customer',
           createdAt: new Date().toISOString(),
           status: 'sending',
@@ -398,7 +401,14 @@ export function useChat(
         );
       } else if (message.pendingFile) {
         deliver(localId, () =>
-          sendFile(identifier, externalId, message.kind as MediaField, message.pendingFile!, identityRef.current)
+          sendFile(
+            identifier,
+            externalId,
+            message.kind as MediaField,
+            message.pendingFile!,
+            identityRef.current,
+            message.peaks
+          )
         );
       } else {
         dispatch({ type: 'send/failed', localId });

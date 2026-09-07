@@ -144,7 +144,8 @@ export async function sendFile(
   externalId: string,
   field: MediaField,
   file: File,
-  user: WidgetUser | null
+  user: WidgetUser | null,
+  peaks: number[] | null = null
 ): Promise<SendOutcome> {
   const form = new FormData();
   form.append('external_id', externalId);
@@ -154,6 +155,7 @@ export async function sendFile(
       if (typeof value === 'string') form.append(`user[${key}]`, value);
     }
   }
+  for (const peak of peaks ?? []) form.append('peaks[]', String(peak));
   const res = await fetch(endpoint('message', identifier), {
     method: 'POST',
     headers: { Accept: 'application/json' },

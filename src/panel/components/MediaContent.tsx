@@ -113,7 +113,7 @@ export function MediaContent({
   }
 
   if (message.kind === 'audio') {
-    return <AudioMessage url={url} onMediaError={onMediaError} />;
+    return <AudioMessage url={url} peaks={message.peaks} onMediaError={onMediaError} />;
   }
 
   if (message.kind === 'video') {

@@ -1,4 +1,5 @@
 import type { ApiContact, ApiItem, ApiLink, ApiMessage, ChatSummary } from '../api/types';
+import { PEAK_COUNT } from '../lib/wave';
 
 export type SendStatus = 'sending' | 'sent' | 'failed';
 export type MessageKind =
@@ -39,6 +40,7 @@ export interface ChatMessage {
   contacts: ApiContact[] | null;
   emoji: string | null;
   filename: string | null;
+  peaks: number[] | null;
   from: 'company' | 'customer';
   createdAt: string;
   status: SendStatus;
@@ -126,6 +128,11 @@ function contactsFromApi(raw: ApiMessage['contacts']): ApiContact[] | null {
   return contacts.length > 0 ? contacts : null;
 }
 
+function peaksFromApi(raw: ApiMessage['peaks']): number[] | null {
+  if (!Array.isArray(raw) || raw.length !== PEAK_COUNT) return null;
+  return raw.every((peak) => typeof peak === 'number' && Number.isFinite(peak)) ? raw : null;
+}
+
 function pixFromApi(item: ApiMessage): PixDetails | null {
   if ((item.type || '').toLowerCase() !== 'order_details') return null;
   if (typeof item.code !== 'string' || !item.code) return null;
@@ -151,6 +158,7 @@ export function fromApi(item: ApiMessage): ChatMessage {
     contacts: contactsFromApi(item.contacts),
     emoji: typeof item.emoji === 'string' && item.emoji ? item.emoji : null,
     filename: typeof item.filename === 'string' && item.filename ? item.filename : null,
+    peaks: peaksFromApi(item.peaks),
     from: item.from === 'company' ? 'company' : 'customer',
     createdAt: item.created_at,
     status: 'sent',
