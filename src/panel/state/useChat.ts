@@ -100,22 +100,27 @@ export function useChat(
   const loadHistory = useCallback(() => {
     const request = ++historyRequestRef.current;
     const live = stateRef.current.historyLoaded;
-    fetchHistory(identifier, externalId)
-      .then((page) => {
-        if (request !== historyRequestRef.current) return;
+    const known = stateRef.current.byId;
+    const fetchPage = (cursor: string | null, first: boolean): Promise<void> =>
+      fetchHistory(identifier, externalId, cursor).then((page): Promise<void> | undefined => {
+        if (request !== historyRequestRef.current) return undefined;
         dispatch({
           type: 'history/replace',
           items: page.data,
           chats: page.chats,
           nextCursor: page.next_cursor,
         });
-        trackUnread(page.data, live);
+        trackUnread(page.data, live && first);
         setHistoryError(false);
-      })
-      .catch(() => {
-        if (request !== historyRequestRef.current) return;
-        if (!stateRef.current.historyLoaded) setHistoryError(true);
+        const overlaps = page.data.some((item) => known.has(item.message_id));
+        const olderCursor = page.next_cursor;
+        if (!live || known.size === 0 || overlaps || !olderCursor) return undefined;
+        return fetchPage(olderCursor, false);
       });
+    fetchPage(null, true).catch(() => {
+      if (request !== historyRequestRef.current) return;
+      if (!stateRef.current.historyLoaded) setHistoryError(true);
+    });
   }, [identifier, externalId, trackUnread]);
 
   const loadHistoryRef = useRef(loadHistory);
@@ -294,6 +299,10 @@ export function useChat(
           link: null,
           selectedValue: null,
           pix: null,
+          location: null,
+          contacts: null,
+          emoji: null,
+          filename: null,
           from: 'customer',
           createdAt: new Date().toISOString(),
           status: 'sending',
@@ -325,6 +334,10 @@ export function useChat(
           link: null,
           selectedValue: null,
           pix: null,
+          location: null,
+          contacts: null,
+          emoji: null,
+          filename: null,
           from: 'customer',
           createdAt: new Date().toISOString(),
           status: 'sending',
@@ -355,6 +368,10 @@ export function useChat(
           link: null,
           selectedValue: item.value,
           pix: null,
+          location: null,
+          contacts: null,
+          emoji: null,
+          filename: null,
           from: 'customer',
           createdAt: new Date().toISOString(),
           status: 'sending',

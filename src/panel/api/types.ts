@@ -13,6 +13,11 @@ export interface ApiLink {
   url: string;
 }
 
+export interface ApiContact {
+  name: string | null;
+  phone: string | null;
+}
+
 export interface ApiMessage {
   message_id: string;
   chat_id: string;
@@ -25,6 +30,11 @@ export interface ApiMessage {
   product_name?: string | null;
   code?: string | null;
   value?: number | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  contacts?: ApiContact[] | null;
+  emoji?: string | null;
+  filename?: string | null;
   media_url: string | null;
   from: MessageFrom;
   created_at: string;

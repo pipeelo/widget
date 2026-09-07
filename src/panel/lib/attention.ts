@@ -6,9 +6,16 @@ const PREVIEW_MAX = 140;
 let ctx: AudioContext | null = null;
 let lastChimeAt = 0;
 
+function labelOf(item: ApiMessage): string | undefined {
+  const type = (item.type || '').toLowerCase();
+  if (type === 'reaction') return item.emoji ? STR.reactedWith(item.emoji) : undefined;
+  if (type === 'location') return STR.locationLabel;
+  if (type === 'contacts') return STR.contactLabel;
+  return MEDIA_LABELS[type];
+}
+
 export function previewOf(item: ApiMessage): string {
-  const label = MEDIA_LABELS[(item.type || '').toLowerCase()];
-  const text = label ?? (item.text || '').replace(/\s+/g, ' ').trim();
+  const text = labelOf(item) ?? (item.text || '').replace(/\s+/g, ' ').trim();
   return (text || STR.newMessage).slice(0, PREVIEW_MAX);
 }
 

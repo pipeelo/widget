@@ -59,6 +59,11 @@ export const STR = {
   copyCode: 'Copiar código',
   codeCopied: 'Código copiado',
   pixTitle: 'Pagamento PIX',
+  locationLabel: 'Localização',
+  openMap: 'Ver no mapa',
+  contactLabel: 'Contato',
+  reactedWith: (emoji: string) => `Reagiu com ${emoji}`,
+  unsupported: 'Mensagem não suportada neste canal',
 };
 
 export const MEDIA_LABELS: Record<string, string> = {

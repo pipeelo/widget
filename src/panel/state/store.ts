@@ -1,4 +1,4 @@
-import type { ApiItem, ApiLink, ApiMessage, ChatSummary } from '../api/types';
+import type { ApiContact, ApiItem, ApiLink, ApiMessage, ChatSummary } from '../api/types';
 
 export type SendStatus = 'sending' | 'sent' | 'failed';
 export type MessageKind =
@@ -8,12 +8,21 @@ export type MessageKind =
   | 'video'
   | 'document'
   | 'interactive'
-  | 'order_details';
+  | 'order_details'
+  | 'location'
+  | 'contacts'
+  | 'reaction'
+  | 'unsupported';
 
 export interface PixDetails {
   productName: string | null;
   code: string;
   value: number | null;
+}
+
+export interface MessageLocation {
+  latitude: number;
+  longitude: number;
 }
 
 export interface ChatMessage {
@@ -26,6 +35,10 @@ export interface ChatMessage {
   link: ApiLink | null;
   selectedValue: string | null;
   pix: PixDetails | null;
+  location: MessageLocation | null;
+  contacts: ApiContact[] | null;
+  emoji: string | null;
+  filename: string | null;
   from: 'company' | 'customer';
   createdAt: string;
   status: SendStatus;
@@ -66,7 +79,11 @@ export function kindFromApi(item: ApiMessage): MessageKind {
   if (type === 'interactive') return 'interactive';
   if (type === 'order_details') return 'order_details';
   if (type === 'text') return 'text';
-  return item.media_url ? 'document' : 'text';
+  if (type === 'location') return locationFromApi(item) ? 'location' : 'unsupported';
+  if (type === 'contacts') return contactsFromApi(item.contacts) ? 'contacts' : 'unsupported';
+  if (type === 'reaction') return item.emoji ? 'reaction' : 'unsupported';
+  if (item.media_url) return 'document';
+  return item.text ? 'text' : 'unsupported';
 }
 
 function itemsFromApi(raw: ApiMessage['items']): ApiItem[] | null {
@@ -87,6 +104,26 @@ function linkFromApi(raw: ApiMessage['link']): ApiLink | null {
   if (typeof label !== 'string' || !label) return null;
   if (typeof url !== 'string' || !/^https?:\/\//i.test(url)) return null;
   return { label, url };
+}
+
+function locationFromApi(item: ApiMessage): MessageLocation | null {
+  const { latitude, longitude } = item;
+  if (typeof latitude !== 'number' || typeof longitude !== 'number') return null;
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
+  return { latitude, longitude };
+}
+
+function contactsFromApi(raw: ApiMessage['contacts']): ApiContact[] | null {
+  if (!Array.isArray(raw)) return null;
+  const contacts: ApiContact[] = [];
+  for (const entry of raw) {
+    if (!entry || typeof entry !== 'object') continue;
+    const name = typeof entry.name === 'string' && entry.name ? entry.name : null;
+    const phone = typeof entry.phone === 'string' && entry.phone ? entry.phone : null;
+    if (!name && !phone) continue;
+    contacts.push({ name, phone });
+  }
+  return contacts.length > 0 ? contacts : null;
 }
 
 function pixFromApi(item: ApiMessage): PixDetails | null {
@@ -110,6 +147,10 @@ export function fromApi(item: ApiMessage): ChatMessage {
     link: linkFromApi(item.link),
     selectedValue: typeof item.selected_value === 'string' ? item.selected_value : null,
     pix: pixFromApi(item),
+    location: locationFromApi(item),
+    contacts: contactsFromApi(item.contacts),
+    emoji: typeof item.emoji === 'string' && item.emoji ? item.emoji : null,
+    filename: typeof item.filename === 'string' && item.filename ? item.filename : null,
     from: item.from === 'company' ? 'company' : 'customer',
     createdAt: item.created_at,
     status: 'sent',

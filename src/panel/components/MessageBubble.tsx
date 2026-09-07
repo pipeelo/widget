@@ -37,6 +37,12 @@ function ClockIcon() {
   );
 }
 
+function TextualContent({ message }: { message: ChatMessage }) {
+  if (message.kind === 'reaction') return <>{STR.reactedWith(message.emoji ?? '')}</>;
+  if (message.kind === 'unsupported') return <span class="msg-unsupported">{STR.unsupported}</span>;
+  return <Linkify text={message.text ?? ''} />;
+}
+
 export function MessageBubble(props: {
   message: ChatMessage;
   first: boolean;
@@ -48,7 +54,11 @@ export function MessageBubble(props: {
   const { message } = props;
   const mine = message.from === 'customer';
   const textual =
-    message.kind === 'text' || message.kind === 'interactive' || message.kind === 'order_details';
+    message.kind === 'text' ||
+    message.kind === 'interactive' ||
+    message.kind === 'order_details' ||
+    message.kind === 'reaction' ||
+    message.kind === 'unsupported';
   const hasMedia = Boolean(message.mediaUrl);
   const framed = hasMedia && (message.kind === 'image' || message.kind === 'video');
   const overlay = framed && message.kind === 'image';
@@ -69,7 +79,7 @@ export function MessageBubble(props: {
       <div class={bubbleClass}>
         {textual ? (
           <>
-            <Linkify text={message.text ?? ''} />
+            <TextualContent message={message} />
             {message.pix && <PixCard pix={message.pix} />}
           </>
         ) : (

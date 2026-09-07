@@ -1,4 +1,4 @@
-import { STR } from '../lib/strings';
+import { MEDIA_LABELS, STR } from '../lib/strings';
 import type { ChatMessage } from '../state/store';
 import { AudioMessage } from './AudioMessage';
 
@@ -17,6 +17,36 @@ function DocIcon() {
   );
 }
 
+function PinIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+      <path
+        d="M12 21s-6-5.4-6-11a6 6 0 0 1 12 0c0 5.6-6 11-6 11Zm0-8.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.8"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      />
+    </svg>
+  );
+}
+
+function ContactIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+      <path
+        d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-7 8a7 7 0 0 1 14 0"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.8"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      />
+    </svg>
+  );
+}
+
 export function MediaContent({
   message,
   onMediaError,
@@ -24,8 +54,47 @@ export function MediaContent({
   message: ChatMessage;
   onMediaError(): void;
 }) {
+  if (message.kind === 'location' && message.location) {
+    const { latitude, longitude } = message.location;
+    return (
+      <a
+        class="msg-doc"
+        href={`https://maps.google.com/?q=${latitude},${longitude}`}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <span class="msg-doc-icon" aria-hidden="true">
+          <PinIcon />
+        </span>
+        <span class="msg-doc-name">{STR.locationLabel}</span>
+        <span class="msg-doc-open">{STR.openMap}</span>
+      </a>
+    );
+  }
+
+  if (message.kind === 'contacts' && message.contacts) {
+    return (
+      <>
+        {message.contacts.map((contact, index) => (
+          <div class="msg-doc" key={index}>
+            <span class="msg-doc-icon" aria-hidden="true">
+              <ContactIcon />
+            </span>
+            <span class="msg-doc-name">{contact.name ?? STR.contactLabel}</span>
+            {contact.phone && (
+              <a class="msg-doc-open" href={`tel:${contact.phone}`}>
+                {contact.phone}
+              </a>
+            )}
+          </div>
+        ))}
+      </>
+    );
+  }
+
   const url = message.mediaUrl;
-  const documentName = message.pendingFile?.name ?? STR.documentLabel;
+  const documentName =
+    message.pendingFile?.name ?? message.filename ?? MEDIA_LABELS[message.kind] ?? STR.documentLabel;
 
   if (!url) return <span class="msg-doc-name">{documentName}</span>;
 
