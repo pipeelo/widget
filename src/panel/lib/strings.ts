@@ -64,9 +64,8 @@ export const STR = {
   contactLabel: 'Contato',
   reactedWith: (emoji: string) => `Reagiu com ${emoji}`,
   unsupported: 'Mensagem não suportada neste canal',
-  pushInvite: 'Te aviso quando a resposta chegar?',
-  pushEnable: 'Ativar',
-  pushLater: 'Agora não',
+  pushInvite: 'Quer um aviso quando a gente responder?',
+  pushEnable: 'Quero sim',
 };
 
 export const MEDIA_LABELS: Record<string, string> = {

@@ -250,25 +250,25 @@ button {
   flex-shrink: 0;
 }
 
-.push-invite button {
+.push-invite__enable {
   padding: 6px 12px;
+  border: 0;
   border-radius: 999px;
-  font-family: inherit;
+  background: var(--pip-primary);
+  color: var(--pip-on-primary);
   font-size: var(--pip-fs-btn);
   font-weight: 600;
   cursor: pointer;
 }
 
 .push-invite__later {
-  border: 1px solid var(--pip-border);
-  background: transparent;
-  color: var(--pip-text);
-}
-
-.push-invite__enable {
+  padding: 0 2px;
   border: 0;
-  background: var(--pip-primary);
-  color: var(--pip-on-primary);
+  background: none;
+  color: inherit;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
 }
 
 .push-invite button:disabled {
