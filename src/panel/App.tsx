@@ -234,6 +234,7 @@ export function App({ params }: { params: PanelParams }) {
           <Composer
             onSendText={chat.sendTextMessage}
             onSendFile={chat.sendFileMessage}
+            onSendLocation={chat.sendLocationMessage}
             focusToken={focusToken}
             open={open}
             disabled={

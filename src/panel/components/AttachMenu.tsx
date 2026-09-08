@@ -1,5 +1,6 @@
 import type { ComponentChildren } from 'preact';
 import { ACCEPT_AUDIO, ACCEPT_CAMERA, ACCEPT_DOCUMENT, ACCEPT_GALLERY } from '../lib/files';
+import { geoSupported } from '../lib/geo';
 import { STR } from '../lib/strings';
 import { Sheet } from './Sheet';
 
@@ -49,6 +50,15 @@ function AudioIcon() {
   );
 }
 
+function LocationIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" {...STROKE}>
+      <path d="M12 21s-6-5.4-6-11a6 6 0 0 1 12 0c0 5.6-6 11-6 11Z" />
+      <circle cx="12" cy="10" r="2.4" />
+    </svg>
+  );
+}
+
 function Row(props: { icon: ComponentChildren; label: string; onClick(): void }) {
   return (
     <button type="button" class="sheet-row sheet-row--icon" onClick={props.onClick}>
@@ -62,6 +72,7 @@ function Row(props: { icon: ComponentChildren; label: string; onClick(): void })
 
 export function AttachMenu(props: {
   onPick(accept: string, capture: boolean): void;
+  onLocation(): void;
   onClose(): void;
 }) {
   const coarse =
@@ -91,6 +102,9 @@ export function AttachMenu(props: {
         label={STR.attachAudio}
         onClick={() => props.onPick(ACCEPT_AUDIO, false)}
       />
+      {geoSupported() && (
+        <Row icon={<LocationIcon />} label={STR.locationLabel} onClick={props.onLocation} />
+      )}
     </Sheet>
   );
 }

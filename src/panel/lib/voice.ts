@@ -1,3 +1,5 @@
+import { policyState, type PolicyState } from './policy';
+
 export const VOICE_MIN_MS = 700;
 export const VOICE_MAX_MS = 300_000;
 
@@ -20,22 +22,10 @@ export function pickMime(): string {
   return MIME_CANDIDATES.find((mime) => MediaRecorder.isTypeSupported(mime)) ?? '';
 }
 
-interface MicPolicy {
-  allowsFeature(feature: string): boolean;
-}
-
-export type MicPolicyState = 'allowed' | 'blocked' | 'unknown';
-
 let micWarned = false;
 
-export function micPolicyState(): MicPolicyState {
-  const policy = (document as Document & { featurePolicy?: MicPolicy }).featurePolicy;
-  if (!policy) return 'unknown';
-  try {
-    return policy.allowsFeature('microphone') ? 'allowed' : 'blocked';
-  } catch {
-    return 'unknown';
-  }
+export function micPolicyState(): PolicyState {
+  return policyState('microphone');
 }
 
 export function micPolicyBlocked(): boolean {

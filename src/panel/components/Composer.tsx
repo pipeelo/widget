@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { MediaField } from '../api/types';
 import { classifyFile, FILE_ACCEPT } from '../lib/files';
+import { requestPosition, type GeoError } from '../lib/geo';
 import { STR } from '../lib/strings';
 import { formatDuration } from '../lib/time';
 import { VOICE_MAX_MS } from '../lib/voice';
@@ -64,6 +65,14 @@ const VOICE_MESSAGES: Record<VoiceError, string> = {
   failed: STR.audioFailed,
 };
 
+const GEO_MESSAGES: Record<GeoError, string> = {
+  blocked: STR.geoBlocked,
+  denied: STR.geoDenied,
+  unavailable: STR.geoUnavailable,
+  timeout: STR.geoTimeout,
+  failed: STR.geoFailed,
+};
+
 function RecordingWave({ levels }: { levels: number[] }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -78,6 +87,7 @@ function RecordingWave({ levels }: { levels: number[] }) {
 export function Composer(props: {
   onSendText(text: string): void;
   onSendFile(field: MediaField, file: File, peaks?: number[] | null): void;
+  onSendLocation(latitude: number, longitude: number): void;
   focusToken: number;
   open: boolean;
   disabled?: boolean;
@@ -85,10 +95,12 @@ export function Composer(props: {
   const [text, setText] = useState('');
   const [fileError, setFileError] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [locating, setLocating] = useState(false);
   const areaRef = useRef<HTMLTextAreaElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const errorTimerRef = useRef<number | undefined>(undefined);
   const sendingVoiceRef = useRef(false);
+  const geoRequestRef = useRef(0);
   const voice = useVoiceRecorder();
 
   const recording = voice.state === 'recording';
@@ -139,7 +151,10 @@ export function Composer(props: {
   }, [voice.error]);
 
   useEffect(() => {
-    if (!props.open) voice.cancel();
+    if (props.open) return;
+    voice.cancel();
+    geoRequestRef.current++;
+    setLocating(false);
   }, [props.open, voice.cancel]);
 
   const sendVoice = () => {
@@ -183,6 +198,20 @@ export function Composer(props: {
     props.onSendFile(result.field, file);
   };
 
+  const pickLocation = () => {
+    setMenuOpen(false);
+    if (props.disabled) return;
+    const request = ++geoRequestRef.current;
+    setFileError(null);
+    setLocating(true);
+    void requestPosition().then((result) => {
+      if (request !== geoRequestRef.current) return;
+      setLocating(false);
+      if (result.ok) props.onSendLocation(result.position.latitude, result.position.longitude);
+      else showError(GEO_MESSAGES[result.error]);
+    });
+  };
+
   const pickWith = (accept: string, capture: boolean) => {
     setMenuOpen(false);
     const input = fileRef.current;
@@ -201,6 +230,7 @@ export function Composer(props: {
 
   return (
     <div class="composer">
+      {locating && <div class="composer-hint">{STR.locating}</div>}
       {fileError && (
         <div class="composer-error" role="alert">
           <span>{fileError}</span>
@@ -270,7 +300,13 @@ export function Composer(props: {
         </button>
         <input ref={fileRef} type="file" accept={FILE_ACCEPT} hidden onChange={onFilePicked} />
       </div>
-      {menuOpen && <AttachMenu onPick={pickWith} onClose={() => setMenuOpen(false)} />}
+      {menuOpen && (
+        <AttachMenu
+          onPick={pickWith}
+          onLocation={pickLocation}
+          onClose={() => setMenuOpen(false)}
+        />
+      )}
     </div>
   );
 }

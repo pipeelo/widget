@@ -115,16 +115,10 @@ async function parseSendResponse(res: Response): Promise<SendOutcome> {
   throw new Error(`send HTTP ${res.status}`);
 }
 
-export async function sendText(
+async function postMessage(
   identifier: string,
-  externalId: string,
-  text: string,
-  user: WidgetUser | null,
-  selectedValue?: string
+  body: Record<string, unknown>
 ): Promise<SendOutcome> {
-  const body: Record<string, unknown> = { external_id: externalId, text };
-  if (selectedValue) body.selected_value = selectedValue;
-  if (user) body.user = user;
   const t = withTimeout(20000);
   try {
     const res = await fetch(endpoint('message', identifier), {
@@ -137,6 +131,31 @@ export async function sendText(
   } finally {
     t.clear();
   }
+}
+
+export function sendText(
+  identifier: string,
+  externalId: string,
+  text: string,
+  user: WidgetUser | null,
+  selectedValue?: string
+): Promise<SendOutcome> {
+  const body: Record<string, unknown> = { external_id: externalId, text };
+  if (selectedValue) body.selected_value = selectedValue;
+  if (user) body.user = user;
+  return postMessage(identifier, body);
+}
+
+export function sendLocation(
+  identifier: string,
+  externalId: string,
+  latitude: number,
+  longitude: number,
+  user: WidgetUser | null
+): Promise<SendOutcome> {
+  const body: Record<string, unknown> = { external_id: externalId, latitude, longitude };
+  if (user) body.user = user;
+  return postMessage(identifier, body);
 }
 
 export async function sendFile(

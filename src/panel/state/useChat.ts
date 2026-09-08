@@ -1,14 +1,36 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from 'preact/hooks';
 import type { WidgetUser } from '../../shared/protocol';
 import { uuidV4 } from '../../shared/uuid';
-import { fetchHistory, markRead, openChat, sendFile, sendText } from '../api/client';
+import { fetchHistory, markRead, openChat, sendFile, sendLocation, sendText } from '../api/client';
 import type { ApiItem, ApiMessage, MediaField, SendOutcome } from '../api/types';
 import { postToLoader } from '../bridge';
 import { chime, previewOf } from '../lib/attention';
 import { composeIdentity } from '../lib/pre-chat';
 import { isPushEligible } from '../push';
 import type { SocketHandle } from '../realtime/socket';
-import { chatReducer, initialChatState, openChatId, type ChatState } from './store';
+import { chatReducer, initialChatState, openChatId, type ChatMessage, type ChatState } from './store';
+
+function outgoing(id: string, fields: Partial<ChatMessage> & Pick<ChatMessage, 'kind'>): ChatMessage {
+  return {
+    id,
+    chatId: null,
+    text: null,
+    mediaUrl: null,
+    items: null,
+    link: null,
+    selectedValue: null,
+    pix: null,
+    location: null,
+    contacts: null,
+    emoji: null,
+    filename: null,
+    peaks: null,
+    from: 'customer',
+    createdAt: new Date().toISOString(),
+    status: 'sending',
+    ...fields,
+  };
+}
 
 const RECONNECT_REFETCH_MS = 2000;
 const TYPING_TTL_MS = 8000;
@@ -24,6 +46,7 @@ export interface ChatController {
   companyReplied: boolean;
   sendTextMessage(text: string): void;
   sendFileMessage(field: MediaField, file: File, peaks?: number[] | null): void;
+  sendLocationMessage(latitude: number, longitude: number): void;
   selectOption(messageId: string, item: ApiItem): void;
   retry(localId: string): void;
   loadOlder(): void;
@@ -292,28 +315,7 @@ export function useChat(
       const text = raw.trim();
       if (!text) return;
       const localId = uuidV4();
-      dispatch({
-        type: 'send/optimistic',
-        message: {
-          id: localId,
-          chatId: null,
-          kind: 'text',
-          text,
-          mediaUrl: null,
-          items: null,
-          link: null,
-          selectedValue: null,
-          pix: null,
-          location: null,
-          contacts: null,
-          emoji: null,
-          filename: null,
-          peaks: null,
-          from: 'customer',
-          createdAt: new Date().toISOString(),
-          status: 'sending',
-        },
-      });
+      dispatch({ type: 'send/optimistic', message: outgoing(localId, { kind: 'text', text }) });
       deliver(localId, () => sendText(identifier, externalId, text, identityRef.current));
     },
     [identifier, externalId, deliver]
@@ -330,28 +332,23 @@ export function useChat(
       }
       dispatch({
         type: 'send/optimistic',
-        message: {
-          id: localId,
-          chatId: null,
-          kind: field,
-          text: null,
-          mediaUrl: previewUrl,
-          items: null,
-          link: null,
-          selectedValue: null,
-          pix: null,
-          location: null,
-          contacts: null,
-          emoji: null,
-          filename: null,
-          peaks,
-          from: 'customer',
-          createdAt: new Date().toISOString(),
-          status: 'sending',
-          pendingFile: file,
-        },
+        message: outgoing(localId, { kind: field, mediaUrl: previewUrl, peaks, pendingFile: file }),
       });
       deliver(localId, () => sendFile(identifier, externalId, field, file, identityRef.current, peaks));
+    },
+    [identifier, externalId, deliver]
+  );
+
+  const sendLocationMessage = useCallback(
+    (latitude: number, longitude: number) => {
+      const localId = uuidV4();
+      dispatch({
+        type: 'send/optimistic',
+        message: outgoing(localId, { kind: 'location', location: { latitude, longitude } }),
+      });
+      deliver(localId, () =>
+        sendLocation(identifier, externalId, latitude, longitude, identityRef.current)
+      );
     },
     [identifier, externalId, deliver]
   );
@@ -365,25 +362,7 @@ export function useChat(
       const localId = uuidV4();
       dispatch({
         type: 'send/optimistic',
-        message: {
-          id: localId,
-          chatId: null,
-          kind: 'text',
-          text: item.title,
-          mediaUrl: null,
-          items: null,
-          link: null,
-          selectedValue: item.value,
-          pix: null,
-          location: null,
-          contacts: null,
-          emoji: null,
-          filename: null,
-          peaks: null,
-          from: 'customer',
-          createdAt: new Date().toISOString(),
-          status: 'sending',
-        },
+        message: outgoing(localId, { kind: 'text', text: item.title, selectedValue: item.value }),
       });
       deliver(localId, () => sendText(identifier, externalId, item.title, identityRef.current, item.value));
     },
@@ -398,6 +377,11 @@ export function useChat(
       if (message.kind === 'text') {
         deliver(localId, () =>
           sendText(identifier, externalId, message.text ?? '', identityRef.current, message.selectedValue ?? undefined)
+        );
+      } else if (message.kind === 'location' && message.location) {
+        const { latitude, longitude } = message.location;
+        deliver(localId, () =>
+          sendLocation(identifier, externalId, latitude, longitude, identityRef.current)
         );
       } else if (message.pendingFile) {
         deliver(localId, () =>
@@ -450,6 +434,7 @@ export function useChat(
     companyReplied,
     sendTextMessage,
     sendFileMessage,
+    sendLocationMessage,
     selectOption,
     retry,
     loadOlder,
