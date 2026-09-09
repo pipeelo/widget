@@ -12,6 +12,7 @@ import { MessageList } from './components/MessageList';
 import { PreChatForm } from './components/PreChatForm';
 import { PushInvite } from './components/PushInvite';
 import { mineBubbleColor } from './lib/bubble-color';
+import { dismissKeyboardOnTapOutside } from './lib/keyboard';
 import { missingPreChatFields } from './lib/pre-chat';
 import { STR } from './lib/strings';
 import { dismissPush, enablePush, ensureSubscribed, isPushDismissed, isPushEligible, syncPush } from './push';
@@ -152,6 +153,12 @@ export function App({ params }: { params: PanelParams }) {
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
   }, [fullscreen]);
+
+  const ownsScreen = fullscreen || !isEmbedded();
+  useEffect(() => {
+    if (!ownsScreen) return;
+    return dismissKeyboardOnTapOutside();
+  }, [ownsScreen]);
 
   const pushKey = config?.push_public_key || null;
   const [pushInvite, setPushInvite] = useState(false);

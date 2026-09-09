@@ -1259,6 +1259,20 @@ a:focus-visible {
   display: none;
 }
 
+:root[data-density='mobile'] .composer-bar {
+  transition: padding-bottom 0.2s ease;
+}
+
+:root[data-density='mobile'] .composer-bar:focus-within {
+  padding-bottom: var(--pip-composer-pad-y);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-density='mobile'] .composer-bar {
+    transition: none;
+  }
+}
+
 :root[data-density='mobile'] .header-name-skeleton {
   height: 16px;
 }
