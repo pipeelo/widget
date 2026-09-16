@@ -846,7 +846,8 @@ button {
   border-color: var(--pip-primary);
 }
 
-.prechat-input--invalid {
+.prechat-input--invalid,
+.prechat-input--invalid:focus {
   border-color: var(--pip-negative);
 }
 

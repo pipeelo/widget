@@ -1,5 +1,6 @@
 import type { WidgetUser } from '../../shared/protocol';
 import type { WidgetConfig } from '../api/types';
+import { normalizeUserField } from './user-fields';
 
 export type PreChatFieldKey = keyof WidgetUser;
 
@@ -17,21 +18,18 @@ export function normalizePreChatFields(raw: unknown): PreChatFieldKey[] {
   return result;
 }
 
-export function isBasicEmail(value: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
-}
-
-function covers(identity: WidgetUser | null, field: PreChatFieldKey): boolean {
-  const value = identity?.[field];
-  if (typeof value !== 'string' || !value.trim()) return false;
-  return field !== 'email' || isBasicEmail(value.trim());
+function rawField(user: WidgetUser | null, field: PreChatFieldKey): string {
+  const value = user?.[field];
+  return typeof value === 'string' ? value : '';
 }
 
 export function missingPreChatFields(
   config: WidgetConfig | null,
   identity: WidgetUser | null
 ): PreChatFieldKey[] {
-  return normalizePreChatFields(config?.pre_chat_form).filter((field) => !covers(identity, field));
+  return normalizePreChatFields(config?.pre_chat_form).filter(
+    (field) => !normalizeUserField(field, rawField(identity, field))
+  );
 }
 
 export function composeIdentity(
@@ -40,7 +38,10 @@ export function composeIdentity(
 ): WidgetUser | null {
   let user: WidgetUser | null = null;
   for (const key of KNOWN_FIELDS) {
-    const value = covers(host, key) ? host![key] : covers(form, key) ? form![key] : undefined;
+    const value =
+      normalizeUserField(key, rawField(host, key)) ??
+      normalizeUserField(key, rawField(form, key)) ??
+      rawField(host, key).trim();
     if (value) (user = user || {})[key] = value;
   }
   return user;

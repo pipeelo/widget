@@ -60,9 +60,23 @@ Campos (todos opcionais):
 | Campo | Tipo | Observação |
 |---|---|---|
 | `ref` | `string` | Identificador do cliente **no seu sistema**. É o que a assinatura protege e o que a Pipeelo usa para relacionar/dedupe. **Não** confundir com o `external_id` (token de sessão anônimo do loader). |
-| `name` / `email` / `phone` | `string` | Já previstos no contrato da API como "atributos de primeiro contato". |
+| `name` / `email` / `phone` / `document` | `string` | Já previstos no contrato da API como "atributos de primeiro contato". `document` é CPF ou CNPJ. |
 | `attributes` | `object` (string/number/boolean) | Chaves livres. Aqui entram CPF, plano, id de pedido, etc. |
 | `signature` | `string` | HMAC-SHA256 hex de `ref`, gerado no **seu backend** (ver "Modo verificado"). |
+
+Formato dos campos básicos (implementado — régua em `src/panel/lib/user-fields.ts`, a mesma do
+formulário pré-chat):
+
+| Campo | Aceito | Sai no bloco `user` |
+|---|---|---|
+| `email` | o que o `FILTER_VALIDATE_EMAIL` da API aceita (sem parte local entre aspas nem IP literal) | aparado |
+| `phone` | brasileiro com DDD, com ou sem máscara e `55`/`+55` (`'+55 62 99999-0000'`, `'(62) 99999-0000'`, `'5562999990000'`; o `wa_id` antigo sem o 9, `'556299990000'`, ganha o 9); estrangeiro só com `+` e o código do país | E.164: `'+5562999990000'` |
+| `document` | CPF ou CNPJ (alfanumérico incluso) com dígito verificador válido, com ou sem máscara | sem máscara, em maiúsculas: `'52998224725'`, `'12ABC34501DE35'` |
+
+Valor fora do formato não conta para o pré-chat (o formulário pede o campo) e, se o
+visitante não o substituir, segue no bloco `user` como veio — o painel não descarta o que o
+site manda. Placeholder não identifica ninguém: `'000.000.000-00'` não é CPF; sem o dado,
+não mande o campo.
 
 ### Quando chamar
 

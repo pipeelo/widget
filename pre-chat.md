@@ -92,10 +92,49 @@ Casos de borda:
 | Painel antigo + config nova (ou vice-versa) | Leitor tolerante: campo ignorado → sem form |
 | Fullscreen (WebView de app) | Igual: app que passa `setUser` completo não vê form; app que não passa, vê |
 
-Validação client-side mínima: obrigatórios não-vazios (trim), email com formato básico,
-corte em 255 (o mesmo limite do `sanitizeUser` do loader). Máscara/validação forte de
-CPF/CNPJ e telefone ficam para o backend — o painel não deve encarnar regra de negócio.
 Strings em `src/panel/lib/strings.ts`; tema e densidade mobile como o resto do painel.
+
+### Validação dos campos
+
+A API não valida telefone nem documento (o model só tira o que não é dígito do telefone) e
+descarta **em silêncio** o e-mail que o `FILTER_VALIDATE_EMAIL` recusa. Por isso a régua mora
+no painel, em `src/panel/lib/user-fields.ts`, e vale igual para o formulário e para o
+`setUser`:
+
+| Campo | Aceita | Sai no bloco `user` |
+|---|---|---|
+| `name` | texto não vazio | aparado |
+| `email` | o que o `FILTER_VALIDATE_EMAIL` aceita, menos parte local entre aspas e IP literal (conferido contra o PHP 8.3 em ~290 mil variações: nada que o form aceita a API descarta) | aparado |
+| `phone` | brasileiro com DDD existente — fixo de 8 dígitos (começa com 2–5) ou celular de 9 (começa com 9) —, com ou sem máscara e `55`/`+55`/`0` na frente; `55` + DDD + celular de 8 dígitos (o `wa_id` antigo do WhatsApp) ganha o 9; estrangeiro só com `+` (8 a 15 dígitos) | E.164: `+5562999990000` (a API grava `5562999990000`, o formato do WhatsApp) |
+| `document` | CPF (11 dígitos) ou CNPJ (14, **alfanumérico incluso** — emitido desde jul/2026) com dígito verificador, com ou sem máscara; sequência repetida não passa | sem máscara, em maiúsculas |
+
+- **Celular sem o 9 digitado à mão é recusado, não corrigido.** Com 10 dígitos quase sempre
+  é dígito faltando, e completar sozinho aceitaria outro número com cara de válido. Só o
+  formato do `wa_id` (com `55` na frente) ganha o 9; a mensagem de erro mostra o formato
+  certo.
+- **E.164, e não só dígitos:** `14155552671` seria lido como número brasileiro inválido e o
+  form nunca sumiria. Pelo mesmo motivo a régua é idempotente — o gate renormaliza a
+  identidade composta.
+- **Validação só no envio.** Nada é marcado enquanto a pessoa digita; o envio marca todos os
+  campos ruins e foca o primeiro. Campo marcado perde o erro assim que fica válido e nunca
+  ganha nem troca de mensagem enquanto se digita — uma mensagem por campo serve para vazio e
+  para inválido, então o `role="alert"` não é relido. Validar no `blur` foi descartado: o erro
+  aparecendo empurra o botão entre o toque e o clique, e o clique se perde.
+- **Formatação ao sair do campo** (`change`), sem máscara ao vivo: nada de cursor pulando,
+  colar quebrado ou letra duplicada no teclado do Android. O `change` também cobre o
+  autopreenchimento que não dispara `input`.
+- **O botão não rouba o foco** (`preventDefault` no `mousedown`): envio que falha leva o foco
+  direto do campo para o primeiro inválido, sem o teclado do Android fechar e reabrir. No
+  toque, `preventDefault` no `pointerdown` não impede o foco; no `mousedown` sintético do
+  toque, impede.
+- **Teclado completo no CPF/CNPJ** (`autocapitalize="characters"`, sem `inputmode`): teclado
+  numérico travaria quem tem CNPJ com letras. `autocorrect` fica de fora — o Preact o
+  atribui como propriedade booleana, e `'off'` viraria `true`.
+- **Valor do site fora da régua** não cobre o campo (o form pede), mas, se o visitante não o
+  substituir, segue no bloco `user` como veio: canal sem pré-chat não perde o que já mandava
+  (telefone estrangeiro sem `+`, RG em `document`).
+- Continua sendo UX, não segurança (ver "Limites" abaixo): é o mínimo para o dado servir, não
+  regra de negócio.
 
 ## Decisões de implementação (ago/2026)
 
@@ -107,8 +146,8 @@ Strings em `src/panel/lib/strings.ts`; tema e densidade mobile como o resto do p
 - **Identidade em dois slots** (`src/panel/lib/pre-chat.ts`): o do host (`setUser`) e
   o do formulário, compostos por campo — o host vence quando o valor dele serve para o
   campo. `setUser(null)` (logout) zera só o slot do host: o que o visitante digitou
-  sobrevive até fechar a página. E-mail só conta como coberto com formato básico
-  válido (a mesma régua da API, que descarta inválido em silêncio) — e-mail lixo do
+  sobrevive até fechar a página. Só conta como coberto o valor que passa na régua de
+  `user-fields.ts` (ver "Validação dos campos") — e-mail, telefone ou documento lixo do
   site não fura o form.
 - **O landing espera a config só no caminho de primeira conversa** (histórico vazio):
   visitante recorrente não paga nada e o 1º open instantâneo (3fff70b) fica intacto.

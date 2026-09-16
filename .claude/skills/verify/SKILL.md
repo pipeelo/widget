@@ -16,7 +16,9 @@ de verdade e dirigir por CDP.
    fake em `/v1/website-channel/{config,history,message}/:id` (`/conversations`
    NÃO é chamada pelo painel — responder 410 pega regressão). Config decidida
    pelo id: contém "float" → floating, senão fullscreen; contém "dark" → theme
-   dark; contém "prechat" → `pre_chat_form: {fields:['name','email']}`.
+   dark; contém "prechat" → `pre_chat_form: {fields:['name','email']}`
+   ("prechatall" → os 4 campos; "prechatphone" → name+phone; "prechatdoc" →
+   name+document).
    `/history` é a fonte do landing e do gate do pré-chat: linha do tempo
    inteira (sem `chat_id`), DESC, com `per_page`/`cursor` de verdade (várias
    páginas) e o bloco `chats` (`chat_id`, `protocol`, `started_at`, `ended_at`)
@@ -28,15 +30,25 @@ de verdade e dirigir por CDP.
    chat_id}` — `chat_id` novo quando o último atendimento está encerrado — e
    guardar as mensagens por `id|external_id` para o refetch mostrá-las. Expor
    `GET /__log` com TODAS as requests da API (kind, query, body: prova o mínimo
-   de requests e o bloco `user`) e `POST /__reset`. Página host aceita
-   `?setuser=full|partial|bademail` para injetar `Pipeelo('setUser', …)` no
-   snippet. Registrar as rotas da API ANTES do estático (ambos sob `/v1/`).
+   de requests e o bloco `user` — multipart incluso, via `new Request(…).formData()`)
+   e `POST /__reset`. Página host aceita
+   `?setuser=full|partial|bademail|wa|badphone|placeholderdoc|foreign` para injetar
+   `Pipeelo('setUser', …)` no snippet (`wa` = `556299990000`, `badphone` = celular
+   sem o 9, `placeholderdoc` = `000.000.000-00`, `foreign` = `351912345678` + RG).
+   Registrar as rotas da API ANTES do estático (ambos sob `/v1/`).
 2. **Build apontando para o server**: `VITE_API_URL=http://127.0.0.1:<porta>/v1 npm run build`
    (a env vence o `.env.local`; `npm run build` puro restaura o build normal).
+   `VITE_SOKETI_HOST=127.0.0.1 VITE_SOKETI_PORT=<porta fechada> VITE_SOKETI_TLS=false`
+   evita abrir socket no Soketi de produção — sem nunca conectar, a faixa
+   "reconectando" não aparece.
 3. **Chrome headless**: `google-chrome --headless=new --no-sandbox --disable-gpu
    --no-first-run --user-data-dir=<tmp> --remote-debugging-port=9377
-   --remote-allow-origins='*'` (sem `--remote-allow-origins` o WebSocket do
-   Node leva 403).
+   --remote-allow-origins='*'
+   --blink-settings=primaryPointerType=4,availablePointerTypes=4,primaryHoverType=2,availableHoverTypes=2`
+   (sem `--remote-allow-origins` o WebSocket do Node leva 403; sem o
+   `--blink-settings` o headless responde `pointer: none`/`hover: none` e o
+   desktop não é desktop para o painel — `Emulation.setEmulatedMedia` não
+   cobre `pointer`/`hover`).
 4. **CDP cru** (Node tem `WebSocket` global): `PUT /json/new?url=about:blank`
    → conectar no `webSocketDebuggerUrl` → `Page.enable`, `Runtime.enable`,
    `Emulation.setDeviceMetricsOverride` (390×844 `mobile:true` p/ celular) +
@@ -100,6 +112,18 @@ não existirem mais, reescrever seguindo os passos acima (~150 linhas).
   → form só com o que falta; `setuser=bademail` → form pede o e-mail (inválido
   não cobre); `Pipeelo('setUser', …)` completo COM o form aberto → dispensa
   sozinho; aba nova (token persistido, conversa existente) → sem form.
+- **Validação do pré-chat** (id "prechatall"): envio vazio por toque → 4 erros
+  (um texto por campo), foco no primeiro, nenhum POST, borda vermelha no campo
+  focado; erro só some ao ficar válido (`maria@` mantém o mesmo texto);
+  telefone/CNPJ formatados no `change` (tocar no campo seguinte); com
+  gravador de `focusin`/`focusout`, envio que falha vai do campo direto ao
+  primeiro inválido e o `BUTTON` nunca aparece; um toque só no enviar, depois
+  de corrigir, abre a thread; o POST e o multipart (`DOM.setFileInputFiles`
+  no `input[type=file]` do composer) levam `+55…` e documento sem máscara.
+  Desktop: Enter com inválido não posta; clique segura o foco no campo.
+  Autopreenchimento estilo Safari: atribuir `value` e disparar só `change`
+  (Event do realm do iframe). `setuser`: `wa` sem form, `placeholderdoc` pede
+  só o documento, `foreign` num canal sem form manda o valor como veio.
 - **Segurança do gate vs. regressão de prod** (atrasar só `/history` no
   server fake dá o teste determinístico): canal COM política → composer
   segurado (envio+anexo `disabled`) durante o boot, até o form assumir; canal
@@ -138,3 +162,9 @@ não existirem mais, reescrever seguindo os passos acima (~150 linhas).
   load), o que é desejável.
 - URLs de cenário do painel precisam de query param distinto — mudar só o
   fragment é navegação same-document e o painel não re-boota.
+- No boot o painel já mostra a thread com o composer desativado, antes de o
+  landing decidir pelo form — esperar `.prechat` (ou a thread + folga), nunca
+  `.prechat, .composer`.
+- `preventDefault` no `pointerdown` não impede o foco de ir para o botão no
+  toque (o Chrome sintetiza o `mousedown` a partir do gesto); no
+  `mousedown`, impede — no toque e no mouse.
