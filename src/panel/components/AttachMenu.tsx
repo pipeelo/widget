@@ -1,8 +1,8 @@
 import type { ComponentChildren } from 'preact';
-import { ACCEPT_AUDIO, ACCEPT_CAMERA, ACCEPT_DOCUMENT, ACCEPT_GALLERY } from '../lib/files';
+import { ACCEPT_AUDIO, ACCEPT_DOCUMENT, ACCEPT_GALLERY } from '../lib/files';
 import { geoSupported } from '../lib/geo';
 import { STR } from '../lib/strings';
-import { AudioIcon, CameraIcon, DocumentIcon, GalleryIcon, LocationIcon } from './icons';
+import { AudioIcon, DocumentIcon, GalleryIcon, LocationIcon } from './icons';
 import { Sheet } from './Sheet';
 
 function Row(props: { icon: ComponentChildren; label: string; onClick(): void }) {
@@ -21,18 +21,8 @@ export function AttachMenu(props: {
   onLocation(): void;
   onClose(): void;
 }) {
-  const coarse =
-    typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches;
-
   return (
     <Sheet title={STR.attach} onClose={props.onClose}>
-      {coarse && (
-        <Row
-          icon={<CameraIcon />}
-          label={STR.attachCamera}
-          onClick={() => props.onPick(ACCEPT_CAMERA, true)}
-        />
-      )}
       <Row
         icon={<GalleryIcon />}
         label={STR.attachGallery}

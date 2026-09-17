@@ -7,12 +7,13 @@ import {
   voiceSupported,
   warnMic,
 } from '../lib/voice';
+import { mediaErrorKind, type MediaError } from '../lib/policy';
 import { toPeaks } from '../lib/wave';
 
 const TICK_MS = 50;
 const LIVE_LEVELS = 240;
 
-export type VoiceError = 'blocked' | 'denied' | 'unavailable' | 'failed';
+export type VoiceError = MediaError;
 export type VoiceState = 'idle' | 'recording';
 
 export interface VoiceResult {
@@ -24,15 +25,6 @@ export interface VoiceResult {
 interface VoiceAnalyser {
   context: AudioContext;
   analyser: AnalyserNode;
-}
-
-function errorKind(err: unknown): VoiceError {
-  const name = err instanceof DOMException ? err.name : '';
-  if (name === 'NotAllowedError' || name === 'SecurityError') {
-    return micPolicyBlocked() ? 'blocked' : 'denied';
-  }
-  if (name === 'NotFoundError' || name === 'OverconstrainedError') return 'unavailable';
-  return 'failed';
 }
 
 function stopTracks(stream: MediaStream | null): void {
@@ -124,7 +116,7 @@ export function useVoiceRecorder() {
     } catch (err) {
       busyRef.current = false;
       warnMic(err);
-      setError(errorKind(err));
+      setError(mediaErrorKind(err, micPolicyBlocked()));
       return;
     }
     if (abortedRef.current) {

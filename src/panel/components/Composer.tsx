@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { MediaField } from '../api/types';
-import { classifyFile, FILE_ACCEPT } from '../lib/files';
+import { cameraSupported } from '../lib/camera';
+import { classifyFile, ACCEPT_CAMERA, FILE_ACCEPT } from '../lib/files';
 import { requestPosition, type GeoError } from '../lib/geo';
-import { finePointer } from '../lib/pointer';
+import { coarsePointer, finePointer } from '../lib/pointer';
+import type { MediaError } from '../lib/policy';
 import { STR } from '../lib/strings';
 import { formatDuration } from '../lib/time';
 import { VOICE_MAX_MS } from '../lib/voice';
@@ -11,8 +13,9 @@ import { useFileDrop } from '../state/useFileDrop';
 import { useVoiceRecorder, type VoiceError } from '../state/useVoiceRecorder';
 import { AttachMenu } from './AttachMenu';
 import { AttachPreview } from './AttachPreview';
+import { CameraCapture } from './CameraCapture';
 import { EmojiPicker } from './EmojiPicker';
-import { SendIcon } from './icons';
+import { CameraIcon, SendIcon } from './icons';
 
 function PaperclipIcon() {
   return (
@@ -55,7 +58,7 @@ function TrashIcon() {
   );
 }
 
-type Overlay = null | 'menu' | 'emoji' | { kind: 'preview'; field: MediaField; file: File };
+type Overlay = null | 'menu' | 'emoji' | 'camera' | { kind: 'preview'; field: MediaField; file: File };
 
 function SmileIcon() {
   return (
@@ -79,6 +82,13 @@ const VOICE_MESSAGES: Record<VoiceError, string> = {
   denied: STR.micDenied,
   unavailable: STR.micUnavailable,
   failed: STR.audioFailed,
+};
+
+const CAMERA_MESSAGES: Record<MediaError, string> = {
+  blocked: STR.cameraBlocked,
+  denied: STR.cameraDenied,
+  unavailable: STR.cameraUnavailable,
+  failed: STR.cameraFailed,
 };
 
 const GEO_MESSAGES: Record<GeoError, string> = {
@@ -112,6 +122,8 @@ export function Composer(props: {
   const [fileError, setFileError] = useState<string | null>(null);
   const [overlay, setOverlay] = useState<Overlay>(null);
   const [emojiEnabled] = useState(finePointer);
+  const [nativeCamera] = useState(coarsePointer);
+  const cameraEnabled = nativeCamera || cameraSupported();
   const emojiRef = useRef<HTMLButtonElement>(null);
   const [locating, setLocating] = useState(false);
   const areaRef = useRef<HTMLTextAreaElement>(null);
@@ -270,6 +282,12 @@ export function Composer(props: {
 
   const preview = overlay !== null && typeof overlay === 'object' ? overlay : null;
 
+  const openCamera = () => {
+    if (props.disabled) return;
+    if (nativeCamera) pickWith(ACCEPT_CAMERA, true);
+    else setOverlay('camera');
+  };
+
   const onPrimary = () => {
     if (recording) sendVoice();
     else if (mode === 'mic') {
@@ -350,6 +368,18 @@ export function Composer(props: {
             >
               <PaperclipIcon />
             </button>
+            {cameraEnabled && !trimmed && (
+              <button
+                type="button"
+                class="composer-camera"
+                aria-label={STR.attachCamera}
+                disabled={props.disabled}
+                onPointerDown={keepFocus}
+                onClick={openCamera}
+              >
+                <CameraIcon />
+              </button>
+            )}
           </div>
         )}
         <button
@@ -371,6 +401,13 @@ export function Composer(props: {
       )}
       {overlay === 'emoji' && (
         <EmojiPicker anchor={emojiRef} onPick={insertEmoji} onClose={() => setOverlay(null)} />
+      )}
+      {overlay === 'camera' && (
+        <CameraCapture
+          onCapture={stage}
+          onError={(kind) => showError(CAMERA_MESSAGES[kind])}
+          onClose={closeOverlay}
+        />
       )}
       {overlay === 'menu' && (
         <AttachMenu onPick={pickWith} onLocation={pickLocation} onClose={() => setOverlay(null)} />
