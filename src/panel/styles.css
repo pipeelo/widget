@@ -30,6 +30,7 @@
   --pip-fs-banner: 12px;
   --pip-fs-doc-open: 12px;
   --pip-fs-composer-error: 12.5px;
+  --pip-fs-emoji: 34px;
   --pip-ctl: 40px;
   --pip-close: 32px;
   --pip-icon-attach: 19px;
@@ -511,6 +512,43 @@ button {
 
 .msg-row--theirs .msg-text a {
   color: var(--pip-primary-dark);
+}
+
+.msg-text strong {
+  font-weight: 600;
+}
+
+.msg-list {
+  margin: 2px 0;
+  padding-left: 1.3em;
+  white-space: normal;
+}
+
+.msg-code {
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.06);
+  font: 400 0.92em / 1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+:root[data-theme='dark'] .msg-code {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.msg-bubble--emoji {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.msg-bubble--emoji .msg-text {
+  font-size: var(--pip-fs-emoji);
+  line-height: 1.15;
+}
+
+.msg-bubble--emoji .msg-meta {
+  float: none;
+  margin: 0;
 }
 
 .msg-status {
@@ -1208,6 +1246,7 @@ a:focus-visible {
   --pip-fs-banner: 13px;
   --pip-fs-doc-open: 13px;
   --pip-fs-composer-error: 14px;
+  --pip-fs-emoji: 40px;
   --pip-ctl: 48px;
   --pip-close: 44px;
   --pip-icon-attach: 23px;

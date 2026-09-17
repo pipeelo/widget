@@ -1,11 +1,12 @@
 import type { ApiItem } from '../api/types';
+import { isEmojiOnly, parseMessage, type Block } from '../lib/format';
 import { STR } from '../lib/strings';
 import { formatTime } from '../lib/time';
 import type { ChatMessage } from '../state/store';
 import { InteractiveOptions } from './InteractiveOptions';
-import { Linkify } from './Linkify';
 import { MediaContent } from './MediaContent';
 import { PixCard } from './PixCard';
+import { RichText } from './RichText';
 
 function CheckIcon() {
   return (
@@ -37,10 +38,10 @@ function ClockIcon() {
   );
 }
 
-function TextualContent({ message }: { message: ChatMessage }) {
+function TextualContent({ message, blocks }: { message: ChatMessage; blocks: Block[] }) {
   if (message.kind === 'reaction') return <>{STR.reactedWith(message.emoji ?? '')}</>;
   if (message.kind === 'unsupported') return <span class="msg-unsupported">{STR.unsupported}</span>;
-  return <Linkify text={message.text ?? ''} />;
+  return <RichText blocks={blocks} />;
 }
 
 export function MessageBubble(props: {
@@ -59,6 +60,9 @@ export function MessageBubble(props: {
     message.kind === 'order_details' ||
     message.kind === 'reaction' ||
     message.kind === 'unsupported';
+  const blocks = textual ? parseMessage(message.text ?? '') : [];
+  const hasList = blocks.some((block) => block.kind === 'list');
+  const emojiOnly = message.kind === 'text' && isEmojiOnly(message.text ?? '');
   const hasMedia = Boolean(message.mediaUrl);
   const framed = hasMedia && (message.kind === 'image' || message.kind === 'video');
   const overlay = framed && message.kind === 'image';
@@ -70,16 +74,18 @@ export function MessageBubble(props: {
   const bubbleClass =
     'msg-bubble' +
     (textual ? '' : framed ? ' msg-bubble--frame' : ' msg-bubble--panel') +
+    (emojiOnly ? ' msg-bubble--emoji' : '') +
     (message.status !== 'sent' ? ' is-pending' : '');
   const metaClass =
-    'msg-meta' + (overlay ? ' msg-meta--over' : !textual || message.pix ? ' msg-meta--block' : '');
+    'msg-meta' +
+    (overlay ? ' msg-meta--over' : !textual || message.pix || hasList ? ' msg-meta--block' : '');
 
   return (
     <div class={rowClass}>
       <div class={bubbleClass}>
         {textual ? (
           <>
-            <TextualContent message={message} />
+            <TextualContent message={message} blocks={blocks} />
             {message.pix && <PixCard pix={message.pix} />}
           </>
         ) : (

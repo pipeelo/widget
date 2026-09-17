@@ -1,10 +1,12 @@
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'preact/hooks';
 import type { ApiItem } from '../api/types';
+import { parseMessage } from '../lib/format';
 import { STR } from '../lib/strings';
 import { dayKey, formatDayLabel } from '../lib/time';
 import { openChatId, visibleOrder, type ChatMessage, type ChatMeta, type ChatState } from '../state/store';
 import { ClosedNotice } from './ClosedNotice';
 import { MessageBubble } from './MessageBubble';
+import { RichText } from './RichText';
 
 type Row =
   | { kind: 'message'; message: ChatMessage; first: boolean; last: boolean }
@@ -218,7 +220,7 @@ export function MessageList(props: {
         <div class="day-section">
           <div class="msg-row msg-row--theirs msg-row--first msg-row--last">
             <div class="msg-bubble">
-              <span class="msg-text">{props.welcome}</span>
+              <RichText blocks={parseMessage(props.welcome ?? '')} />
             </div>
           </div>
         </div>

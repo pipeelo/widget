@@ -1,4 +1,5 @@
 import type { ApiMessage } from '../api/types';
+import { plainText } from './format';
 import { MEDIA_LABELS, STR } from './strings';
 
 const CHIME_COOLDOWN_MS = 2500;
@@ -15,7 +16,7 @@ function labelOf(item: ApiMessage): string | undefined {
 }
 
 export function previewOf(item: ApiMessage): string {
-  const text = labelOf(item) ?? (item.text || '').replace(/\s+/g, ' ').trim();
+  const text = labelOf(item) ?? plainText(item.text || '').replace(/\s+/g, ' ').trim();
   return (text || STR.newMessage).slice(0, PREVIEW_MAX);
 }
 
