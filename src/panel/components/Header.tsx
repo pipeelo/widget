@@ -1,5 +1,6 @@
 import { useRef } from 'preact/hooks';
 import { STR } from '../lib/strings';
+import { CloseIcon } from './icons';
 
 function ChevronIcon() {
   return (
@@ -12,21 +13,6 @@ function ChevronIcon() {
     >
       <path
         d="m6 9.5 6 6 6-6"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2.2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-      />
-    </svg>
-  );
-}
-
-function CloseIcon() {
-  return (
-    <svg class="header-close-x" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
-      <path
-        d="M6 6l12 12M18 6 6 18"
         fill="none"
         stroke="currentColor"
         stroke-width="2.2"
@@ -77,7 +63,7 @@ export function Header(props: {
       {props.showClose && (
         <button type="button" class="header-close" aria-label={STR.close} {...closeAction}>
           <ChevronIcon />
-          <CloseIcon />
+          <CloseIcon class="header-close-x" />
         </button>
       )}
     </header>

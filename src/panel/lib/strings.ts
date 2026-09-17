@@ -9,6 +9,8 @@ export const STR = {
   attachGallery: 'Fotos e vídeos',
   attachDocument: 'Documento',
   attachAudio: 'Áudio',
+  previewSend: 'Enviar',
+  previewCancel: 'Cancelar',
   recordAudio: 'Gravar áudio',
   sendAudio: 'Enviar áudio',
   cancelRecording: 'Cancelar gravação',

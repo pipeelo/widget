@@ -69,6 +69,14 @@ export type FileClassification =
   | { ok: true; field: MediaField }
   | { ok: false; error: string };
 
+const sizeFormat = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 1 });
+
+export function formatSize(bytes: number): string {
+  if (bytes < KB) return `${bytes} B`;
+  if (bytes < KB * KB) return `${sizeFormat.format(bytes / KB)} KB`;
+  return `${sizeFormat.format(bytes / (KB * KB))} MB`;
+}
+
 export function classifyFile(file: { type: string; size: number }): FileClassification {
   const mime = ((file.type || '').split(';')[0] ?? '').trim().toLowerCase();
   const rule = RULES.find((r) => r.mimes.indexOf(mime) !== -1);

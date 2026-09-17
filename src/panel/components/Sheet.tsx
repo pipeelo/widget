@@ -1,35 +1,18 @@
 import type { ComponentChildren } from 'preact';
 import { useEffect, useRef } from 'preact/hooks';
 import { STR } from '../lib/strings';
-
-function CloseIcon() {
-  return (
-    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
-      <path
-        d="M6 6l12 12M18 6L6 18"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        stroke-linecap="round"
-      />
-    </svg>
-  );
-}
+import { useEscape } from '../state/useEscape';
+import { CloseIcon } from './icons';
 
 export function Sheet(props: { title: string; onClose(): void; children: ComponentChildren }) {
   const rowsRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef(props.onClose);
   closeRef.current = props.onClose;
 
+  useEscape(() => closeRef.current());
+
   useEffect(() => {
     rowsRef.current?.querySelector('button')?.focus();
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape') return;
-      event.stopPropagation();
-      closeRef.current();
-    };
-    document.addEventListener('keydown', onKeyDown, true);
-    return () => document.removeEventListener('keydown', onKeyDown, true);
   }, []);
 
   return (
@@ -49,7 +32,7 @@ export function Sheet(props: { title: string; onClose(): void; children: Compone
             aria-label={STR.closeSheet}
             onClick={() => closeRef.current()}
           >
-            <CloseIcon />
+            <CloseIcon size={16} />
           </button>
         </div>
         <div class="sheet-rows" ref={rowsRef}>

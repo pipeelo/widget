@@ -2,12 +2,15 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import type { MediaField } from '../api/types';
 import { classifyFile, FILE_ACCEPT } from '../lib/files';
 import { requestPosition, type GeoError } from '../lib/geo';
+import { finePointer } from '../lib/pointer';
 import { STR } from '../lib/strings';
 import { formatDuration } from '../lib/time';
 import { VOICE_MAX_MS } from '../lib/voice';
 import { drawBars, liveBars } from '../lib/wave';
 import { useVoiceRecorder, type VoiceError } from '../state/useVoiceRecorder';
 import { AttachMenu } from './AttachMenu';
+import { AttachPreview } from './AttachPreview';
+import { SendIcon } from './icons';
 
 function PaperclipIcon() {
   return (
@@ -20,14 +23,6 @@ function PaperclipIcon() {
         stroke-linecap="round"
         stroke-linejoin="round"
       />
-    </svg>
-  );
-}
-
-function SendIcon() {
-  return (
-    <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true">
-      <path fill="currentColor" d="M2.01 21 23 12 2.01 3 2 10l15 2-15 2z" />
     </svg>
   );
 }
@@ -57,6 +52,8 @@ function TrashIcon() {
     </svg>
   );
 }
+
+type Overlay = null | 'menu' | { kind: 'preview'; field: MediaField; file: File };
 
 const VOICE_MESSAGES: Record<VoiceError, string> = {
   blocked: STR.micBlocked,
@@ -94,7 +91,7 @@ export function Composer(props: {
 }) {
   const [text, setText] = useState('');
   const [fileError, setFileError] = useState<string | null>(null);
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [overlay, setOverlay] = useState<Overlay>(null);
   const [locating, setLocating] = useState(false);
   const areaRef = useRef<HTMLTextAreaElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -110,12 +107,7 @@ export function Composer(props: {
   const sendLabel = recording ? STR.sendAudio : mode === 'mic' ? STR.recordAudio : STR.send;
 
   useEffect(() => {
-    if (
-      props.focusToken > 0 &&
-      window.matchMedia('(hover: hover) and (pointer: fine)').matches
-    ) {
-      areaRef.current?.focus();
-    }
+    if (props.focusToken > 0 && finePointer()) areaRef.current?.focus();
   }, [props.focusToken]);
 
   const autosize = () => {
@@ -155,6 +147,7 @@ export function Composer(props: {
     voice.cancel();
     geoRequestRef.current++;
     setLocating(false);
+    setOverlay(null);
   }, [props.open, voice.cancel]);
 
   const sendVoice = () => {
@@ -185,21 +178,35 @@ export function Composer(props: {
 
   const keepFocus = (event: Event) => event.preventDefault();
 
-  const onFilePicked = (event: Event) => {
-    const input = event.currentTarget as HTMLInputElement;
-    const file = input.files && input.files[0];
-    input.value = '';
-    if (!file || props.disabled) return;
+  const stage = (file: File) => {
+    if (props.disabled || recording) return;
     const result = classifyFile(file);
     if (!result.ok) {
       showError(result.error);
       return;
     }
-    props.onSendFile(result.field, file);
+    setOverlay({ kind: 'preview', field: result.field, file });
+  };
+
+  const closeOverlay = () => {
+    setOverlay(null);
+    if (finePointer()) areaRef.current?.focus();
+  };
+
+  const sendStaged = (field: MediaField, file: File) => {
+    props.onSendFile(field, file);
+    closeOverlay();
+  };
+
+  const onFilePicked = (event: Event) => {
+    const input = event.currentTarget as HTMLInputElement;
+    const file = input.files && input.files[0];
+    input.value = '';
+    if (file) stage(file);
   };
 
   const pickLocation = () => {
-    setMenuOpen(false);
+    setOverlay(null);
     if (props.disabled) return;
     const request = ++geoRequestRef.current;
     setFileError(null);
@@ -213,7 +220,7 @@ export function Composer(props: {
   };
 
   const pickWith = (accept: string, capture: boolean) => {
-    setMenuOpen(false);
+    setOverlay(null);
     const input = fileRef.current;
     if (!input) return;
     input.accept = accept;
@@ -221,6 +228,8 @@ export function Composer(props: {
     else input.removeAttribute('capture');
     input.click();
   };
+
+  const preview = overlay !== null && typeof overlay === 'object' ? overlay : null;
 
   const onPrimary = () => {
     if (recording) sendVoice();
@@ -282,7 +291,7 @@ export function Composer(props: {
               aria-label={STR.attach}
               disabled={props.disabled}
               onPointerDown={keepFocus}
-              onClick={() => setMenuOpen(true)}
+              onClick={() => setOverlay('menu')}
             >
               <PaperclipIcon />
             </button>
@@ -300,11 +309,16 @@ export function Composer(props: {
         </button>
         <input ref={fileRef} type="file" accept={FILE_ACCEPT} hidden onChange={onFilePicked} />
       </div>
-      {menuOpen && (
-        <AttachMenu
-          onPick={pickWith}
-          onLocation={pickLocation}
-          onClose={() => setMenuOpen(false)}
+      {overlay === 'menu' && (
+        <AttachMenu onPick={pickWith} onLocation={pickLocation} onClose={() => setOverlay(null)} />
+      )}
+      {preview && (
+        <AttachPreview
+          field={preview.field}
+          file={preview.file}
+          disabled={Boolean(props.disabled)}
+          onSend={() => sendStaged(preview.field, preview.file)}
+          onCancel={closeOverlay}
         />
       )}
     </div>
