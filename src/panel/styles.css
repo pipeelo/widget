@@ -1806,3 +1806,22 @@ a:focus-visible {
     animation: none;
   }
 }
+
+.drop-zone {
+  position: fixed;
+  inset: 8px;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed var(--pip-primary);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--pip-primary);
+  font: 600 var(--pip-fs-small) / 1.3 var(--pip-font);
+  pointer-events: none;
+}
+
+:root[data-theme='dark'] .drop-zone {
+  background: rgba(0, 0, 0, 0.6);
+}

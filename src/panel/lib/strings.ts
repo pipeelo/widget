@@ -11,6 +11,7 @@ export const STR = {
   attachAudio: 'Áudio',
   previewSend: 'Enviar',
   previewCancel: 'Cancelar',
+  dropHint: 'Solte o arquivo para enviar',
   recordAudio: 'Gravar áudio',
   sendAudio: 'Enviar áudio',
   cancelRecording: 'Cancelar gravação',

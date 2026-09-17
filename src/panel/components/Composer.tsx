@@ -7,6 +7,7 @@ import { STR } from '../lib/strings';
 import { formatDuration } from '../lib/time';
 import { VOICE_MAX_MS } from '../lib/voice';
 import { drawBars, liveBars } from '../lib/wave';
+import { useFileDrop } from '../state/useFileDrop';
 import { useVoiceRecorder, type VoiceError } from '../state/useVoiceRecorder';
 import { AttachMenu } from './AttachMenu';
 import { AttachPreview } from './AttachPreview';
@@ -205,6 +206,16 @@ export function Composer(props: {
     if (file) stage(file);
   };
 
+  const onPaste = (event: ClipboardEvent) => {
+    const data = event.clipboardData;
+    const file = data && data.files[0];
+    if (!file || data.getData('text/plain')) return;
+    event.preventDefault();
+    stage(file);
+  };
+
+  const dragging = useFileDrop(stage);
+
   const pickLocation = () => {
     setOverlay(null);
     if (props.disabled) return;
@@ -278,6 +289,7 @@ export function Composer(props: {
               enterkeyhint="send"
               value={text}
               onInput={(event) => setText(event.currentTarget.value)}
+              onPaste={onPaste}
               onKeyDown={(event) => {
                 if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) {
                   event.preventDefault();
@@ -309,6 +321,11 @@ export function Composer(props: {
         </button>
         <input ref={fileRef} type="file" accept={FILE_ACCEPT} hidden onChange={onFilePicked} />
       </div>
+      {dragging && (
+        <div class="drop-zone" aria-hidden="true">
+          {STR.dropHint}
+        </div>
+      )}
       {overlay === 'menu' && (
         <AttachMenu onPick={pickWith} onLocation={pickLocation} onClose={() => setOverlay(null)} />
       )}

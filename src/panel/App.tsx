@@ -17,6 +17,7 @@ import { missingPreChatFields } from './lib/pre-chat';
 import { STR } from './lib/strings';
 import { dismissPush, enablePush, ensureSubscribed, isPushDismissed, isPushEligible, syncPush } from './push';
 import { useChat } from './state/useChat';
+import { draggingFiles } from './state/useFileDrop';
 
 export interface PanelParams {
   id: string;
@@ -153,6 +154,20 @@ export function App({ params }: { params: PanelParams }) {
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
   }, [fullscreen]);
+
+  useEffect(() => {
+    const editable = (target: EventTarget | null) =>
+      target instanceof HTMLTextAreaElement || target instanceof HTMLInputElement;
+    const block = (event: DragEvent) => {
+      if (draggingFiles(event) || !editable(event.target)) event.preventDefault();
+    };
+    document.addEventListener('dragover', block);
+    document.addEventListener('drop', block);
+    return () => {
+      document.removeEventListener('dragover', block);
+      document.removeEventListener('drop', block);
+    };
+  }, []);
 
   const ownsScreen = fullscreen || !isEmbedded();
   useEffect(() => {
