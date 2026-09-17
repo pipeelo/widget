@@ -899,6 +899,7 @@ button {
 }
 
 .composer {
+  position: relative;
   border-top: 1px solid var(--pip-border);
   background: var(--pip-surface);
   flex-shrink: 0;
@@ -955,6 +956,11 @@ button {
   background: var(--pip-bubble-company);
 }
 
+.composer-field--emoji {
+  padding-left: 2px;
+}
+
+.composer-emoji,
 .composer-attach {
   display: flex;
   align-items: center;
@@ -969,15 +975,21 @@ button {
   flex-shrink: 0;
 }
 
+.composer-emoji svg,
 .composer-attach svg {
   width: var(--pip-icon-attach);
   height: var(--pip-icon-attach);
 }
 
 @media (hover: hover) {
+  .composer-emoji:hover,
   .composer-attach:hover:not(:disabled) {
     color: var(--pip-text-strong);
   }
+}
+
+.composer-emoji[aria-expanded='true'] {
+  color: var(--pip-primary);
 }
 
 .composer-attach:active:not(:disabled) {
@@ -1801,8 +1813,92 @@ a:focus-visible {
   cursor: default;
 }
 
+.emoji-popover {
+  position: absolute;
+  left: 8px;
+  bottom: calc(100% + 6px);
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  width: min(340px, calc(100% - 16px));
+  height: 320px;
+  border: 1px solid var(--pip-border);
+  border-radius: 14px;
+  background: var(--pip-surface);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.14);
+  overflow: hidden;
+  animation: pip-sheet-up 0.18s ease;
+}
+
+.emoji-tabs {
+  display: flex;
+  gap: 2px;
+  padding: 6px 6px 4px;
+  border-bottom: 1px solid var(--pip-border);
+}
+
+.emoji-tab {
+  flex: 1;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  font-size: 18px;
+  line-height: 1;
+  opacity: 0.55;
+  cursor: pointer;
+}
+
+.emoji-tab--active {
+  opacity: 1;
+  background: var(--pip-bubble-company);
+}
+
+.emoji-grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(36px, 1fr));
+  align-content: start;
+  gap: 2px;
+  padding: 6px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--pip-border) transparent;
+}
+
+.emoji-grid::-webkit-scrollbar {
+  width: 6px;
+}
+
+.emoji-grid::-webkit-scrollbar-thumb {
+  background: var(--pip-border);
+  border-radius: 6px;
+}
+
+.emoji-cell {
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  .emoji-tab:hover {
+    opacity: 1;
+  }
+  .emoji-cell:hover {
+    background: var(--pip-bubble-company);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .preview {
+  .preview,
+  .emoji-popover {
     animation: none;
   }
 }

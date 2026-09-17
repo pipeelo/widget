@@ -1,6 +1,7 @@
 import type { PushSubscriptionPayload } from './api/types';
 import { subscribePush } from './api/client';
 import { isEmbedded } from './bridge';
+import { readStorage, writeStorage } from './lib/storage';
 
 export function isPushEligible(): boolean {
   return (
@@ -39,35 +40,20 @@ export async function enablePush(publicKey: string): Promise<PushSubscriptionPay
   return permission === 'granted' ? ensureSubscribed(publicKey) : null;
 }
 
-function read(key: string): string | null {
-  try {
-    return localStorage.getItem(key);
-  } catch {
-    return null;
-  }
-}
-
-function write(key: string, value: string): void {
-  try {
-    localStorage.setItem(key, value);
-  } catch {
-  }
-}
-
 export async function syncPush(
   identifier: string,
   externalId: string,
   subscription: PushSubscriptionPayload
 ): Promise<void> {
   const key = `pipeelo:push:${identifier}:${externalId}`;
-  if (read(key) === subscription.endpoint) return;
-  if (await subscribePush(identifier, externalId, subscription)) write(key, subscription.endpoint);
+  if (readStorage(key) === subscription.endpoint) return;
+  if (await subscribePush(identifier, externalId, subscription)) writeStorage(key, subscription.endpoint);
 }
 
 export function isPushDismissed(identifier: string): boolean {
-  return read(`pipeelo:push-dismissed:${identifier}`) === '1';
+  return readStorage(`pipeelo:push-dismissed:${identifier}`) === '1';
 }
 
 export function dismissPush(identifier: string): void {
-  write(`pipeelo:push-dismissed:${identifier}`, '1');
+  writeStorage(`pipeelo:push-dismissed:${identifier}`, '1');
 }

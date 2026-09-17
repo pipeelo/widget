@@ -11,6 +11,7 @@ import { useFileDrop } from '../state/useFileDrop';
 import { useVoiceRecorder, type VoiceError } from '../state/useVoiceRecorder';
 import { AttachMenu } from './AttachMenu';
 import { AttachPreview } from './AttachPreview';
+import { EmojiPicker } from './EmojiPicker';
 import { SendIcon } from './icons';
 
 function PaperclipIcon() {
@@ -54,7 +55,24 @@ function TrashIcon() {
   );
 }
 
-type Overlay = null | 'menu' | { kind: 'preview'; field: MediaField; file: File };
+type Overlay = null | 'menu' | 'emoji' | { kind: 'preview'; field: MediaField; file: File };
+
+function SmileIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8" />
+      <path
+        d="M8.5 14.5a4.5 4.5 0 0 0 7 0"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.8"
+        stroke-linecap="round"
+      />
+      <circle cx="9" cy="9.8" r="1.1" fill="currentColor" />
+      <circle cx="15" cy="9.8" r="1.1" fill="currentColor" />
+    </svg>
+  );
+}
 
 const VOICE_MESSAGES: Record<VoiceError, string> = {
   blocked: STR.micBlocked,
@@ -93,6 +111,8 @@ export function Composer(props: {
   const [text, setText] = useState('');
   const [fileError, setFileError] = useState<string | null>(null);
   const [overlay, setOverlay] = useState<Overlay>(null);
+  const [emojiEnabled] = useState(finePointer);
+  const emojiRef = useRef<HTMLButtonElement>(null);
   const [locating, setLocating] = useState(false);
   const areaRef = useRef<HTMLTextAreaElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -216,6 +236,14 @@ export function Composer(props: {
 
   const dragging = useFileDrop(stage);
 
+  const insertEmoji = (emoji: string) => {
+    const el = areaRef.current;
+    if (!el) return;
+    el.focus();
+    el.setRangeText(emoji, el.selectionStart, el.selectionEnd, 'end');
+    setText(el.value);
+  };
+
   const pickLocation = () => {
     setOverlay(null);
     if (props.disabled) return;
@@ -244,8 +272,10 @@ export function Composer(props: {
 
   const onPrimary = () => {
     if (recording) sendVoice();
-    else if (mode === 'mic') void voice.start();
-    else submit();
+    else if (mode === 'mic') {
+      setOverlay(null);
+      void voice.start();
+    } else submit();
   };
 
   return (
@@ -279,7 +309,20 @@ export function Composer(props: {
             </div>
           </>
         ) : (
-          <div class="composer-field">
+          <div class={'composer-field' + (emojiEnabled ? ' composer-field--emoji' : '')}>
+            {emojiEnabled && (
+              <button
+                ref={emojiRef}
+                type="button"
+                class="composer-emoji"
+                aria-label={STR.emoji}
+                aria-expanded={overlay === 'emoji'}
+                onPointerDown={keepFocus}
+                onClick={() => setOverlay(overlay === 'emoji' ? null : 'emoji')}
+              >
+                <SmileIcon />
+              </button>
+            )}
             <textarea
               ref={areaRef}
               class="composer-input"
@@ -325,6 +368,9 @@ export function Composer(props: {
         <div class="drop-zone" aria-hidden="true">
           {STR.dropHint}
         </div>
+      )}
+      {overlay === 'emoji' && (
+        <EmojiPicker anchor={emojiRef} onPick={insertEmoji} onClose={() => setOverlay(null)} />
       )}
       {overlay === 'menu' && (
         <AttachMenu onPick={pickWith} onLocation={pickLocation} onClose={() => setOverlay(null)} />
