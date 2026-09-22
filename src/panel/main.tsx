@@ -8,17 +8,26 @@ function readHashParams(): URLSearchParams {
   return new URLSearchParams(raw || location.search);
 }
 
+function dashed(hex: string): string {
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
 function parseParams(hash: URLSearchParams): PanelParams | null {
+  const code = hash.get('c');
+  if (code && /^[0-9a-f]{64}$/i.test(code)) {
+    const hex = code.toLowerCase();
+    return { id: dashed(hex.slice(0, 32)), eid: dashed(hex.slice(32)), lastread: hash.get('lastread'), mode: hash.get('mode') ?? 'fullscreen' };
+  }
   const id = hash.get('id');
   const eid = hash.get('eid');
   if (!id || !eid) return null;
   return { id, eid, lastread: hash.get('lastread'), mode: hash.get('mode') };
 }
 
-const hash = readHashParams();
+const params = parseParams(readHashParams());
 
 if (
-  hash.get('mode') === 'fullscreen' ||
+  params?.mode === 'fullscreen' ||
   (typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches)
 ) {
   document.documentElement.setAttribute('data-density', 'mobile');
@@ -26,7 +35,6 @@ if (
 
 const root = document.getElementById('app');
 if (root) {
-  const params = parseParams(hash);
   render(
     params ? <App params={params} /> : <div class="fatal">{STR.startError}</div>,
     root

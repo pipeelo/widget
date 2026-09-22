@@ -21,8 +21,12 @@ self.addEventListener('push', (event) => {
 
 function conversationOf(url) {
   const hash = url.indexOf('#');
-  const params = new URLSearchParams(hash >= 0 ? url.slice(hash + 1) : '');
-  return params.get('id') + '|' + params.get('eid');
+  const query = url.indexOf('?');
+  const raw = hash >= 0 ? url.slice(hash + 1) : query >= 0 ? url.slice(query + 1) : '';
+  const params = new URLSearchParams(raw);
+  const code = params.get('c');
+  if (code) return code.toLowerCase();
+  return ((params.get('id') || '') + (params.get('eid') || '')).replace(/-/g, '').toLowerCase();
 }
 
 self.addEventListener('notificationclick', (event) => {
