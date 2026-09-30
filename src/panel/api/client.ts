@@ -138,10 +138,12 @@ export function sendText(
   externalId: string,
   text: string,
   user: WidgetUser | null,
-  selectedValue?: string
+  selectedValue?: string,
+  replyToId?: string
 ): Promise<SendOutcome> {
   const body: Record<string, unknown> = { external_id: externalId, text };
   if (selectedValue) body.selected_value = selectedValue;
+  if (replyToId) body.reply_to_id = replyToId;
   if (user) body.user = user;
   return postMessage(identifier, body);
 }
@@ -151,9 +153,11 @@ export function sendLocation(
   externalId: string,
   latitude: number,
   longitude: number,
-  user: WidgetUser | null
+  user: WidgetUser | null,
+  replyToId?: string
 ): Promise<SendOutcome> {
   const body: Record<string, unknown> = { external_id: externalId, latitude, longitude };
+  if (replyToId) body.reply_to_id = replyToId;
   if (user) body.user = user;
   return postMessage(identifier, body);
 }
@@ -164,11 +168,13 @@ export async function sendFile(
   field: MediaField,
   file: File,
   user: WidgetUser | null,
-  peaks: number[] | null = null
+  peaks: number[] | null = null,
+  replyToId?: string
 ): Promise<SendOutcome> {
   const form = new FormData();
   form.append('external_id', externalId);
   form.append(field, file, file.name);
+  if (replyToId) form.append('reply_to_id', replyToId);
   if (user) {
     for (const [key, value] of Object.entries(user)) {
       if (typeof value === 'string') form.append(`user[${key}]`, value);

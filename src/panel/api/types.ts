@@ -18,6 +18,13 @@ export interface ApiContact {
   phone: string | null;
 }
 
+export interface ApiReplyTo {
+  message_id: string;
+  from: MessageFrom;
+  type: string;
+  text: string | null;
+}
+
 export interface ApiMessage {
   message_id: string;
   chat_id: string;
@@ -36,6 +43,7 @@ export interface ApiMessage {
   emoji?: string | null;
   filename?: string | null;
   peaks?: number[] | null;
+  reply_to?: ApiReplyTo | null;
   media_url: string | null;
   from: MessageFrom;
   created_at: string;

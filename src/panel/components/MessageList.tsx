@@ -3,7 +3,15 @@ import type { ApiItem } from '../api/types';
 import { parseMessage } from '../lib/format';
 import { STR } from '../lib/strings';
 import { dayKey, formatDayLabel } from '../lib/time';
-import { openChatId, visibleOrder, type ChatMessage, type ChatMeta, type ChatState } from '../state/store';
+import {
+  canReply,
+  openChatId,
+  visibleOrder,
+  type ChatMessage,
+  type ChatMeta,
+  type ChatState,
+} from '../state/store';
+import { useSwipeReply } from '../state/useSwipeReply';
 import { ClosedNotice } from './ClosedNotice';
 import { MessageBubble } from './MessageBubble';
 import { RichText } from './RichText';
@@ -27,6 +35,7 @@ interface ScrollAnchor {
 }
 
 const GROUP_WINDOW_MS = 5 * 60 * 1000;
+const FLASH_MS = 1200;
 
 function closedMeta(state: ChatState, chatId: string | null): ChatMeta | null {
   if (chatId === null) return null;
@@ -79,17 +88,22 @@ export function MessageList(props: {
   welcome: string | null;
   historyError: boolean;
   loadingOlder: boolean;
+  brandName: string;
   onRetryHistory(): void;
   loadOlder(): void;
   onReveal(): void;
   onRetry(id: string): void;
   onMediaError(): void;
   onSelectOption(messageId: string, item: ApiItem): void;
+  onReply(id: string): void;
 }) {
   const { state } = props;
   const scrollerRef = useRef<HTMLDivElement>(null);
   const atBottomRef = useRef(true);
   const anchorRef = useRef<ScrollAnchor | null>(null);
+  const lastIdRef = useRef<string | undefined>(undefined);
+
+  useSwipeReply(scrollerRef, props.onReply);
 
   const visible = useMemo(() => visibleOrder(state), [state]);
   const hidden = state.order.length - visible.length;
@@ -127,11 +141,28 @@ export function MessageList(props: {
     props.onReveal();
   };
 
+  const jumpTo = (id: string) => {
+    const el = scrollerRef.current;
+    const row = el?.querySelector<HTMLElement>(`[data-id="${id}"]`);
+    if (!el || !row) return;
+    const top = row.getBoundingClientRect().top - el.getBoundingClientRect().top + el.scrollTop;
+    const behavior = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
+    el.scrollTo({ top: top - (el.clientHeight - row.offsetHeight) / 2, behavior });
+    row.dataset.flash = '';
+    window.setTimeout(() => delete row.dataset.flash, FLASH_MS);
+  };
+
   useLayoutEffect(() => {
     const el = scrollerRef.current;
     if (!el) return;
+    const lastId = visible[visible.length - 1];
+    const ownSend = lastId !== lastIdRef.current && state.byId.get(lastId ?? '')?.status === 'sending';
+    lastIdRef.current = lastId;
     const anchor = anchorRef.current;
-    if (anchor) {
+    if (ownSend) {
+      anchorRef.current = null;
+      el.scrollTop = el.scrollHeight;
+    } else if (anchor) {
       const settled =
         state.revealed !== anchor.revealed ||
         (state.nextCursor !== anchor.cursor && !props.loadingOlder);
@@ -238,8 +269,11 @@ export function MessageList(props: {
                 message={row.message}
                 first={row.first}
                 last={row.last}
+                brandName={props.brandName}
                 onRetry={props.onRetry}
                 onMediaError={props.onMediaError}
+                onJump={jumpTo}
+                onReply={canReply(row.message, openId) ? props.onReply : undefined}
                 onSelectOption={
                   openId !== null && row.message.chatId === openId ? props.onSelectOption : undefined
                 }

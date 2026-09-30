@@ -3,9 +3,11 @@ import { isEmojiOnly, parseMessage, type Block } from '../lib/format';
 import { STR } from '../lib/strings';
 import { formatTime } from '../lib/time';
 import type { ChatMessage } from '../state/store';
+import { ReplyIcon } from './icons';
 import { InteractiveOptions } from './InteractiveOptions';
 import { MediaContent } from './MediaContent';
 import { PixCard } from './PixCard';
+import { ReplyQuote } from './ReplyQuote';
 import { RichText } from './RichText';
 
 function CheckIcon() {
@@ -48,11 +50,15 @@ export function MessageBubble(props: {
   message: ChatMessage;
   first: boolean;
   last: boolean;
+  brandName: string;
   onRetry(id: string): void;
   onMediaError(): void;
+  onJump(id: string): void;
+  onReply?(id: string): void;
   onSelectOption?(messageId: string, item: ApiItem): void;
 }) {
   const { message } = props;
+  const replyTo = message.replyTo;
   const mine = message.from === 'customer';
   const textual =
     message.kind === 'text' ||
@@ -62,7 +68,7 @@ export function MessageBubble(props: {
     message.kind === 'unsupported';
   const blocks = textual ? parseMessage(message.text ?? '') : [];
   const hasList = blocks.some((block) => block.kind === 'list');
-  const emojiOnly = message.kind === 'text' && isEmojiOnly(message.text ?? '');
+  const emojiOnly = message.kind === 'text' && !replyTo && isEmojiOnly(message.text ?? '');
   const hasMedia = Boolean(message.mediaUrl);
   const framed = hasMedia && (message.kind === 'image' || message.kind === 'video');
   const overlay = framed && message.kind === 'image';
@@ -81,8 +87,15 @@ export function MessageBubble(props: {
     (overlay ? ' msg-meta--over' : !textual || message.pix || hasList ? ' msg-meta--block' : '');
 
   return (
-    <div class={rowClass}>
+    <div class={rowClass} data-id={message.id} data-reply={props.onReply ? '' : undefined}>
       <div class={bubbleClass}>
+        {replyTo && (
+          <ReplyQuote
+            replyTo={replyTo}
+            brandName={props.brandName}
+            onClick={() => props.onJump(replyTo.id)}
+          />
+        )}
         {textual ? (
           <>
             <TextualContent message={message} blocks={blocks} />
@@ -97,6 +110,16 @@ export function MessageBubble(props: {
           {mine && message.status === 'sending' && <ClockIcon />}
           {mine && message.status === 'sent' && <CheckIcon />}
         </span>
+        {props.onReply && (
+          <button
+            type="button"
+            class="msg-reply"
+            aria-label={STR.reply}
+            onClick={() => props.onReply?.(message.id)}
+          >
+            <ReplyIcon />
+          </button>
+        )}
       </div>
       {message.kind === 'interactive' && !mine && message.items && (
         <InteractiveOptions

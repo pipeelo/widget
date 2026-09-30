@@ -9,13 +9,16 @@ import { STR } from '../lib/strings';
 import { formatDuration } from '../lib/time';
 import { VOICE_MAX_MS } from '../lib/voice';
 import { drawBars, liveBars } from '../lib/wave';
+import type { ReplyTo } from '../state/store';
+import { useEscape } from '../state/useEscape';
 import { useFileDrop } from '../state/useFileDrop';
 import { useVoiceRecorder, type VoiceError } from '../state/useVoiceRecorder';
 import { AttachMenu } from './AttachMenu';
 import { AttachPreview } from './AttachPreview';
 import { CameraCapture } from './CameraCapture';
 import { EmojiPicker } from './EmojiPicker';
-import { CameraIcon, SendIcon } from './icons';
+import { CameraIcon, CloseIcon, SendIcon } from './icons';
+import { ReplyQuote } from './ReplyQuote';
 
 function PaperclipIcon() {
   return (
@@ -99,6 +102,25 @@ const GEO_MESSAGES: Record<GeoError, string> = {
   failed: STR.geoFailed,
 };
 
+function ReplyBar(props: { replyTo: ReplyTo; brandName: string; onCancel(): void }) {
+  useEscape(props.onCancel);
+
+  return (
+    <div class="composer-reply">
+      <ReplyQuote replyTo={props.replyTo} brandName={props.brandName} />
+      <button
+        type="button"
+        class="composer-reply-close"
+        aria-label={STR.cancelReply}
+        onMouseDown={(event) => event.preventDefault()}
+        onClick={props.onCancel}
+      >
+        <CloseIcon size={16} />
+      </button>
+    </div>
+  );
+}
+
 function RecordingWave({ levels }: { levels: number[] }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -114,6 +136,9 @@ export function Composer(props: {
   onSendText(text: string): void;
   onSendFile(field: MediaField, file: File, peaks?: number[] | null): void;
   onSendLocation(latitude: number, longitude: number): void;
+  onCancelReply(): void;
+  replyTo: ReplyTo | null;
+  brandName: string;
   focusToken: number;
   open: boolean;
   disabled?: boolean;
@@ -226,6 +251,11 @@ export function Composer(props: {
     if (finePointer()) areaRef.current?.focus();
   };
 
+  const cancelReply = () => {
+    props.onCancelReply();
+    if (finePointer()) areaRef.current?.focus();
+  };
+
   const sendStaged = (field: MediaField, file: File) => {
     props.onSendFile(field, file);
     closeOverlay();
@@ -306,6 +336,9 @@ export function Composer(props: {
             ×
           </button>
         </div>
+      )}
+      {props.replyTo && (
+        <ReplyBar replyTo={props.replyTo} brandName={props.brandName} onCancel={cancelReply} />
       )}
       <div class="composer-bar">
         {recording ? (

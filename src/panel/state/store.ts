@@ -26,6 +26,13 @@ export interface MessageLocation {
   longitude: number;
 }
 
+export interface ReplyTo {
+  id: string;
+  from: 'company' | 'customer';
+  type: string;
+  text: string | null;
+}
+
 export interface ChatMessage {
   id: string;
   chatId: string | null;
@@ -41,6 +48,7 @@ export interface ChatMessage {
   emoji: string | null;
   filename: string | null;
   peaks: number[] | null;
+  replyTo: ReplyTo | null;
   from: 'company' | 'customer';
   createdAt: string;
   status: SendStatus;
@@ -133,6 +141,16 @@ function peaksFromApi(raw: ApiMessage['peaks']): number[] | null {
   return raw.every((peak) => typeof peak === 'number' && Number.isFinite(peak)) ? raw : null;
 }
 
+function replyToFromApi(raw: ApiMessage['reply_to']): ReplyTo | null {
+  if (!raw || typeof raw !== 'object' || typeof raw.message_id !== 'string') return null;
+  return {
+    id: raw.message_id,
+    from: raw.from === 'company' ? 'company' : 'customer',
+    type: typeof raw.type === 'string' ? raw.type : '',
+    text: typeof raw.text === 'string' ? raw.text : null,
+  };
+}
+
 function pixFromApi(item: ApiMessage): PixDetails | null {
   if ((item.type || '').toLowerCase() !== 'order_details') return null;
   if (typeof item.code !== 'string' || !item.code) return null;
@@ -159,6 +177,7 @@ export function fromApi(item: ApiMessage): ChatMessage {
     emoji: typeof item.emoji === 'string' && item.emoji ? item.emoji : null,
     filename: typeof item.filename === 'string' && item.filename ? item.filename : null,
     peaks: peaksFromApi(item.peaks),
+    replyTo: replyToFromApi(item.reply_to),
     from: item.from === 'company' ? 'company' : 'customer',
     createdAt: item.created_at,
     status: 'sent',
@@ -245,6 +264,16 @@ export function visibleOrder(state: ChatState): string[] {
 export function openChatId(state: ChatState): string | null {
   const newest = newestChatId(state.byId, state.order);
   return newest !== null && isOpen(state.chats, newest) ? newest : null;
+}
+
+export function canReply(message: ChatMessage, openId: string | null): boolean {
+  return openId !== null && message.chatId === openId && message.status === 'sent' && message.kind !== 'reaction';
+}
+
+export function replyTarget(state: ChatState, id: string | null): ReplyTo | null {
+  const message = id === null ? undefined : state.byId.get(id);
+  if (!message || !canReply(message, openChatId(state))) return null;
+  return { id: message.id, from: message.from, type: message.kind, text: message.text };
 }
 
 export type ChatAction =

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useReducer, useRef, useState } from 'preact/hooks';
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'preact/hooks';
 import type { WidgetUser } from '../../shared/protocol';
 import { uuidV4 } from '../../shared/uuid';
 import { fetchHistory, markRead, openChat, sendFile, sendLocation, sendText } from '../api/client';
@@ -8,7 +8,15 @@ import { chime, previewOf } from '../lib/attention';
 import { composeIdentity } from '../lib/pre-chat';
 import { isPushEligible } from '../push';
 import type { SocketHandle } from '../realtime/socket';
-import { chatReducer, initialChatState, openChatId, type ChatMessage, type ChatState } from './store';
+import {
+  chatReducer,
+  initialChatState,
+  openChatId,
+  replyTarget,
+  type ChatMessage,
+  type ChatState,
+  type ReplyTo,
+} from './store';
 
 function outgoing(id: string, fields: Partial<ChatMessage> & Pick<ChatMessage, 'kind'>): ChatMessage {
   return {
@@ -25,6 +33,7 @@ function outgoing(id: string, fields: Partial<ChatMessage> & Pick<ChatMessage, '
     emoji: null,
     filename: null,
     peaks: null,
+    replyTo: null,
     from: 'customer',
     createdAt: new Date().toISOString(),
     status: 'sending',
@@ -44,6 +53,8 @@ export interface ChatController {
   loadingOlder: boolean;
   identity: WidgetUser | null;
   companyReplied: boolean;
+  replyTo: ReplyTo | null;
+  setReplyTo(id: string | null): void;
   sendTextMessage(text: string): void;
   sendFileMessage(field: MediaField, file: File, peaks?: number[] | null): void;
   sendLocationMessage(latitude: number, longitude: number): void;
@@ -69,9 +80,11 @@ export function useChat(
   const [typing, setTyping] = useState(false);
   const [companyReplied, setCompanyReplied] = useState(false);
   const [syncTick, setSyncTick] = useState(0);
+  const [replyToId, setReplyToId] = useState<string | null>(null);
 
   const stateRef = useRef(state);
   stateRef.current = state;
+  const replyToIdRef = useRef<string | null>(null);
 
   const openRef = useRef(false);
   const loadingOlderRef = useRef(false);
@@ -284,6 +297,20 @@ export function useChat(
     [recomposeIdentity]
   );
 
+  const setReplyTo = useCallback((id: string | null) => {
+    replyToIdRef.current = id;
+    setReplyToId(id);
+  }, []);
+
+  const takeReplyTo = useCallback((): ReplyTo | null => {
+    if (replyToIdRef.current === null) return null;
+    const target = replyTarget(stateRef.current, replyToIdRef.current);
+    setReplyTo(null);
+    return target;
+  }, [setReplyTo]);
+
+  const replyTo = useMemo(() => replyTarget(state, replyToId), [state, replyToId]);
+
   const deliver = useCallback(
     (localId: string, request: () => Promise<SendOutcome>) => {
       const sentFrom = openChatId(stateRef.current);
@@ -315,10 +342,13 @@ export function useChat(
       const text = raw.trim();
       if (!text) return;
       const localId = uuidV4();
-      dispatch({ type: 'send/optimistic', message: outgoing(localId, { kind: 'text', text }) });
-      deliver(localId, () => sendText(identifier, externalId, text, identityRef.current));
+      const replyTo = takeReplyTo();
+      dispatch({ type: 'send/optimistic', message: outgoing(localId, { kind: 'text', text, replyTo }) });
+      deliver(localId, () =>
+        sendText(identifier, externalId, text, identityRef.current, undefined, replyTo?.id)
+      );
     },
-    [identifier, externalId, deliver]
+    [identifier, externalId, deliver, takeReplyTo]
   );
 
   const sendFileMessage = useCallback(
@@ -330,27 +360,31 @@ export function useChat(
       } catch {
         previewUrl = null;
       }
+      const replyTo = takeReplyTo();
       dispatch({
         type: 'send/optimistic',
-        message: outgoing(localId, { kind: field, mediaUrl: previewUrl, peaks, pendingFile: file }),
+        message: outgoing(localId, { kind: field, mediaUrl: previewUrl, peaks, pendingFile: file, replyTo }),
       });
-      deliver(localId, () => sendFile(identifier, externalId, field, file, identityRef.current, peaks));
+      deliver(localId, () =>
+        sendFile(identifier, externalId, field, file, identityRef.current, peaks, replyTo?.id)
+      );
     },
-    [identifier, externalId, deliver]
+    [identifier, externalId, deliver, takeReplyTo]
   );
 
   const sendLocationMessage = useCallback(
     (latitude: number, longitude: number) => {
       const localId = uuidV4();
+      const replyTo = takeReplyTo();
       dispatch({
         type: 'send/optimistic',
-        message: outgoing(localId, { kind: 'location', location: { latitude, longitude } }),
+        message: outgoing(localId, { kind: 'location', location: { latitude, longitude }, replyTo }),
       });
       deliver(localId, () =>
-        sendLocation(identifier, externalId, latitude, longitude, identityRef.current)
+        sendLocation(identifier, externalId, latitude, longitude, identityRef.current, replyTo?.id)
       );
     },
-    [identifier, externalId, deliver]
+    [identifier, externalId, deliver, takeReplyTo]
   );
 
   const selectOption = useCallback(
@@ -374,14 +408,22 @@ export function useChat(
       const message = stateRef.current.byId.get(localId);
       if (!message || message.status !== 'failed') return;
       dispatch({ type: 'send/retry', localId, createdAt: new Date().toISOString() });
+      const replyToId = message.replyTo?.id;
       if (message.kind === 'text') {
         deliver(localId, () =>
-          sendText(identifier, externalId, message.text ?? '', identityRef.current, message.selectedValue ?? undefined)
+          sendText(
+            identifier,
+            externalId,
+            message.text ?? '',
+            identityRef.current,
+            message.selectedValue ?? undefined,
+            replyToId
+          )
         );
       } else if (message.kind === 'location' && message.location) {
         const { latitude, longitude } = message.location;
         deliver(localId, () =>
-          sendLocation(identifier, externalId, latitude, longitude, identityRef.current)
+          sendLocation(identifier, externalId, latitude, longitude, identityRef.current, replyToId)
         );
       } else if (message.pendingFile) {
         deliver(localId, () =>
@@ -391,7 +433,8 @@ export function useChat(
             message.kind as MediaField,
             message.pendingFile!,
             identityRef.current,
-            message.peaks
+            message.peaks,
+            replyToId
           )
         );
       } else {
@@ -432,6 +475,8 @@ export function useChat(
     loadingOlder,
     identity,
     companyReplied,
+    replyTo,
+    setReplyTo,
     sendTextMessage,
     sendFileMessage,
     sendLocationMessage,

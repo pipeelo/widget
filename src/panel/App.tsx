@@ -217,6 +217,11 @@ export function App({ params }: { params: PanelParams }) {
   const close = () => postToLoader({ __pipeelo: true, type: 'close' });
   const name = (config?.name ?? '').trim() || STR.brandFallback;
 
+  const onReply = (id: string) => {
+    chat.setReplyTo(id);
+    setFocusToken((t) => t + 1);
+  };
+
   return (
     <div class="panel">
       <Header
@@ -243,12 +248,14 @@ export function App({ params }: { params: PanelParams }) {
             welcome={config?.welcome_message ?? null}
             historyError={chat.historyError}
             loadingOlder={chat.loadingOlder}
+            brandName={name}
             onRetryHistory={chat.refreshHistory}
             loadOlder={chat.loadOlder}
             onReveal={chat.reveal}
             onRetry={chat.retry}
             onMediaError={onMediaError}
             onSelectOption={chat.selectOption}
+            onReply={onReply}
           />
           {pushInvite && chat.companyReplied && (
             <PushInvite busy={pushBusy} onEnable={onEnablePush} onDismiss={onDismissPush} />
@@ -257,6 +264,9 @@ export function App({ params }: { params: PanelParams }) {
             onSendText={chat.sendTextMessage}
             onSendFile={chat.sendFileMessage}
             onSendLocation={chat.sendLocationMessage}
+            onCancelReply={() => chat.setReplyTo(null)}
+            replyTo={chat.replyTo}
+            brandName={name}
             focusToken={focusToken}
             open={open}
             disabled={

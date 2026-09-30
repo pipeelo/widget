@@ -7,7 +7,9 @@ const PREVIEW_MAX = 140;
 let ctx: AudioContext | null = null;
 let lastChimeAt = 0;
 
-function labelOf(item: ApiMessage): string | undefined {
+type Previewable = Pick<ApiMessage, 'type' | 'text' | 'emoji'>;
+
+function labelOf(item: Previewable): string | undefined {
   const type = (item.type || '').toLowerCase();
   if (type === 'reaction') return item.emoji ? STR.reactedWith(item.emoji) : undefined;
   if (type === 'location') return STR.locationLabel;
@@ -15,7 +17,7 @@ function labelOf(item: ApiMessage): string | undefined {
   return MEDIA_LABELS[type];
 }
 
-export function previewOf(item: ApiMessage): string {
+export function previewOf(item: Previewable): string {
   const text = labelOf(item) ?? plainText(item.text || '').replace(/\s+/g, ' ').trim();
   return (text || STR.newMessage).slice(0, PREVIEW_MAX);
 }
