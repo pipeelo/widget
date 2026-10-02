@@ -133,6 +133,10 @@ no painel, em `src/panel/lib/user-fields.ts`, e vale igual para o formulário e 
 - **Valor do site fora da régua** não cobre o campo (o form pede), mas, se o visitante não o
   substituir, segue no bloco `user` como veio: canal sem pré-chat não perde o que já mandava
   (telefone estrangeiro sem `+`, RG em `document`).
+- **Valor de exemplo não é dado.** O placeholder do snippet (`NOME_DO_CLIENTE`, maiúsculas com
+  `_`), sobra de template (`{{`, `<?`, `<%`, `${`) e sobra de JS/Python (`undefined`, `null`,
+  `NaN`, `None`, `[object Object]`) contam como vazio, do site e do form: não cobrem o campo e
+  não saem no bloco `user`, nem pelo repasse acima (`isPlaceholder` em `user-fields.ts`).
 - Continua sendo UX, não segurança (ver "Limites" abaixo): é o mínimo para o dado servir, não
   regra de negócio.
 

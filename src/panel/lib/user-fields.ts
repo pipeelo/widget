@@ -11,6 +11,8 @@ const WHATSAPP_LEGACY_MOBILE = /^55\d\d[6-9]\d{7}$/;
 const ASCII_ZERO = 48;
 const CPF = { shape: /^\d{11}$/, maxWeight: 11 };
 const CNPJ = { shape: /^[\dA-Z]{12}\d\d$/, maxWeight: 9 };
+const PLACEHOLDER =
+  /^(?:[A-Z][A-Z\d]*(?:_[A-Z\d]+)+|undefined|null|NaN|None|\[object Object\])$|\{\{|<\?|<%|\$\{/;
 
 function normalizePhone(value: string): string | null {
   const digits = value.replace(/\D/g, '');
@@ -56,9 +58,13 @@ const NORMALIZERS: Record<UserField, (value: string) => string | null> = {
   document: normalizeDocument,
 };
 
+export function isPlaceholder(value: string): boolean {
+  return PLACEHOLDER.test(value.trim());
+}
+
 export function normalizeUserField(field: UserField, raw: string): string | null {
   const value = raw.trim();
-  return value ? NORMALIZERS[field](value) : null;
+  return value && !isPlaceholder(value) ? NORMALIZERS[field](value) : null;
 }
 
 export function formatUserField(field: UserField, raw: string): string {

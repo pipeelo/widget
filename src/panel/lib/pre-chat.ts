@@ -1,6 +1,6 @@
 import type { WidgetUser } from '../../shared/protocol';
 import type { WidgetConfig } from '../api/types';
-import { normalizeUserField } from './user-fields';
+import { isPlaceholder, normalizeUserField } from './user-fields';
 
 export type PreChatFieldKey = keyof WidgetUser;
 
@@ -20,7 +20,7 @@ export function normalizePreChatFields(raw: unknown): PreChatFieldKey[] {
 
 function rawField(user: WidgetUser | null, field: PreChatFieldKey): string {
   const value = user?.[field];
-  return typeof value === 'string' ? value : '';
+  return typeof value === 'string' && !isPlaceholder(value) ? value : '';
 }
 
 export function missingPreChatFields(
