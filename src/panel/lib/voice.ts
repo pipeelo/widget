@@ -4,6 +4,7 @@ export const VOICE_MIN_MS = 700;
 export const VOICE_MAX_MS = 300_000;
 
 const MIME_CANDIDATES = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus'];
+const WEBKIT_MIME_CANDIDATES = ['audio/mp4', ...MIME_CANDIDATES];
 
 const EXTENSIONS: Record<string, string> = {
   'audio/webm': 'webm',
@@ -17,9 +18,14 @@ function recorderAvailable(): boolean {
   return typeof MediaRecorder === 'function' && typeof MediaRecorder.isTypeSupported === 'function';
 }
 
+function isAppleWebKit(): boolean {
+  return navigator.vendor === 'Apple Computer, Inc.';
+}
+
 export function pickMime(): string {
   if (!recorderAvailable()) return '';
-  return MIME_CANDIDATES.find((mime) => MediaRecorder.isTypeSupported(mime)) ?? '';
+  const candidates = isAppleWebKit() ? WEBKIT_MIME_CANDIDATES : MIME_CANDIDATES;
+  return candidates.find((mime) => MediaRecorder.isTypeSupported(mime)) ?? '';
 }
 
 let micWarned = false;
