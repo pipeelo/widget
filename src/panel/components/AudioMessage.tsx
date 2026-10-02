@@ -33,22 +33,30 @@ export function AudioMessage(props: { url: string; peaks: number[] | null; onMed
   const waveRef = useRef<HTMLCanvasElement>(null);
   const fixingRef = useRef(false);
   const fixTimerRef = useRef(0);
+  const heldRef = useRef(false);
+  const [src, setSrc] = useState(props.url);
   const [isPlaying, setIsPlaying] = useState(false);
   const [current, setCurrent] = useState(0);
   const [duration, setDuration] = useState<number | null>(null);
 
-  useEffect(() => {
+  const load = (url: string) => {
+    window.clearTimeout(fixTimerRef.current);
+    fixingRef.current = false;
+    heldRef.current = false;
     setIsPlaying(false);
     setCurrent(0);
     setDuration(null);
-    return () => {
-      window.clearTimeout(fixTimerRef.current);
-      fixingRef.current = false;
-    };
+    setSrc(url);
+  };
+
+  useEffect(() => {
+    if (props.url === src || (heldRef.current && !audioRef.current?.error)) return;
+    load(props.url);
   }, [props.url]);
 
   useEffect(
     () => () => {
+      window.clearTimeout(fixTimerRef.current);
       if (playing === audioRef.current) playing = null;
     },
     []
@@ -99,16 +107,25 @@ export function AudioMessage(props: { url: string; peaks: number[] | null; onMed
   };
 
   const onEnded = () => {
+    heldRef.current = false;
     setIsPlaying(false);
     setCurrent(0);
+    if (props.url !== src) load(props.url);
+  };
+
+  const onError = () => {
+    if (props.url !== src) load(props.url);
+    else props.onMediaError();
   };
 
   const toggle = () => {
     const el = audioRef.current;
     if (!el) return;
     abandonDurationFix();
-    if (el.paused) void el.play().catch(() => {});
-    else el.pause();
+    if (el.paused) {
+      heldRef.current = true;
+      void el.play().catch(() => {});
+    } else el.pause();
   };
 
   const played = duration ? Math.min(1, current / duration) : 0;
@@ -150,6 +167,7 @@ export function AudioMessage(props: { url: string; peaks: number[] | null; onMed
           if (!el || duration === null) return;
           const rect = event.currentTarget.getBoundingClientRect();
           const ratio = Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width));
+          heldRef.current = true;
           el.currentTime = ratio * duration;
           setCurrent(el.currentTime);
         }}
@@ -158,7 +176,7 @@ export function AudioMessage(props: { url: string; peaks: number[] | null; onMed
       <audio
         ref={audioRef}
         class="msg-audio-el"
-        src={props.url}
+        src={src}
         preload="metadata"
         onLoadedMetadata={onLoadedMetadata}
         onDurationChange={onDurationChange}
@@ -166,7 +184,7 @@ export function AudioMessage(props: { url: string; peaks: number[] | null; onMed
         onPlay={onPlay}
         onPause={() => setIsPlaying(false)}
         onEnded={onEnded}
-        onError={props.onMediaError}
+        onError={onError}
       />
     </div>
   );

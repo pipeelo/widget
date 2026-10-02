@@ -265,7 +265,7 @@ export function MessageList(props: {
               <ClosedNotice key={'closed:' + row.chatId} endedAt={row.meta.endedAt} protocol={row.meta.protocol} />
             ) : (
               <MessageBubble
-                key={row.message.id}
+                key={row.message.localId ?? row.message.id}
                 message={row.message}
                 first={row.first}
                 last={row.last}

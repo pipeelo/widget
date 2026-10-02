@@ -53,6 +53,7 @@ export interface ChatMessage {
   createdAt: string;
   status: SendStatus;
   pendingFile?: File;
+  localId?: string;
 }
 
 export interface ChatMeta {
@@ -196,22 +197,34 @@ function rebuild(state: ChatState, byId: Map<string, ChatMessage>, patch?: Parti
   return { ...state, ...patch, byId, order };
 }
 
+function sameFile(message: ChatMessage, item: ApiMessage): boolean {
+  return Boolean(item.filename) && message.pendingFile?.name === item.filename;
+}
+
 function inFlightTwinOf(byId: Map<string, ChatMessage>, item: ApiMessage): string | null {
   if (item.from !== 'customer' || byId.has(item.message_id)) return null;
   const kind = kindFromApi(item);
+  let oldest: string | null = null;
   for (const message of byId.values()) {
     if (message.from !== 'customer' || message.status !== 'sending') continue;
     if (message.kind !== kind) continue;
     if (kind === 'text' && message.text !== (item.text ?? null)) continue;
-    return message.id;
+    if (sameFile(message, item)) return message.id;
+    if (oldest === null) oldest = message.id;
   }
-  return null;
+  return oldest;
+}
+
+function upsert(byId: Map<string, ChatMessage>, message: ChatMessage, localId?: string): void {
+  const inherited = localId ?? byId.get(message.id)?.localId;
+  byId.set(message.id, inherited ? { ...message, localId: inherited } : message);
 }
 
 function absorb(byId: Map<string, ChatMessage>, item: ApiMessage): void {
   const twin = inFlightTwinOf(byId, item);
+  const local = twin === null ? undefined : byId.get(twin);
   if (twin) byId.delete(twin);
-  byId.set(item.message_id, fromApi(item));
+  upsert(byId, fromApi(item), local && sameFile(local, item) ? local.id : undefined);
 }
 
 function mergeChats(chats: Map<string, ChatMeta>, summaries: ChatSummary[]): Map<string, ChatMeta> {
@@ -304,7 +317,7 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
 
     case 'history/prependOlder': {
       const byId = new Map(state.byId);
-      for (const item of action.items) byId.set(item.message_id, fromApi(item));
+      for (const item of action.items) upsert(byId, fromApi(item));
       return rebuild(state, byId, {
         chats: mergeChats(state.chats, action.chats),
         nextCursor: action.nextCursor,
@@ -333,9 +346,10 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
       const byId = new Map(state.byId);
       byId.delete(action.localId);
       const server = byId.get(action.messageId);
-      byId.set(
-        action.messageId,
-        server ?? { ...local, id: action.messageId, chatId: action.chatId ?? local.chatId, status: 'sent' }
+      upsert(
+        byId,
+        server ?? { ...local, id: action.messageId, chatId: action.chatId ?? local.chatId, status: 'sent' },
+        action.localId
       );
       return withAnchor(rebuild(state, byId));
     }
