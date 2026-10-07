@@ -66,12 +66,13 @@ export function MessageBubble(props: {
     message.kind === 'order_details' ||
     message.kind === 'reaction' ||
     message.kind === 'unsupported';
-  const blocks = textual ? parseMessage(message.text ?? '') : [];
-  const hasList = blocks.some((block) => block.kind === 'list');
   const emojiOnly = message.kind === 'text' && !replyTo && isEmojiOnly(message.text ?? '');
   const hasMedia = Boolean(message.mediaUrl);
   const framed = hasMedia && (message.kind === 'image' || message.kind === 'video');
-  const overlay = framed && message.kind === 'image';
+  const captioned = framed && Boolean(message.text?.trim());
+  const blocks = textual || captioned ? parseMessage(message.text ?? '') : [];
+  const hasList = blocks.some((block) => block.kind === 'list');
+  const overlay = framed && message.kind === 'image' && !captioned;
   const rowClass =
     'msg-row ' +
     (mine ? 'msg-row--mine' : 'msg-row--theirs') +
@@ -84,7 +85,18 @@ export function MessageBubble(props: {
     (message.status !== 'sent' ? ' is-pending' : '');
   const metaClass =
     'msg-meta' +
-    (overlay ? ' msg-meta--over' : !textual || message.pix || hasList ? ' msg-meta--block' : '');
+    (overlay
+      ? ' msg-meta--over'
+      : (!textual && !captioned) || message.pix || hasList
+        ? ' msg-meta--block'
+        : '');
+  const meta = (
+    <span class={metaClass}>
+      <span class="msg-time">{formatTime(message.createdAt)}</span>
+      {mine && message.status === 'sending' && <ClockIcon />}
+      {mine && message.status === 'sent' && <CheckIcon />}
+    </span>
+  );
 
   return (
     <div class={rowClass} data-id={message.id} data-reply={props.onReply ? '' : undefined}>
@@ -105,11 +117,14 @@ export function MessageBubble(props: {
           <MediaContent message={message} onMediaError={props.onMediaError} />
         )}
         {message.status === 'sending' && framed && <span class="msg-spinner" aria-hidden="true" />}
-        <span class={metaClass}>
-          <span class="msg-time">{formatTime(message.createdAt)}</span>
-          {mine && message.status === 'sending' && <ClockIcon />}
-          {mine && message.status === 'sent' && <CheckIcon />}
-        </span>
+        {captioned ? (
+          <div class="msg-caption">
+            <RichText blocks={blocks} />
+            {meta}
+          </div>
+        ) : (
+          meta
+        )}
         {props.onReply && (
           <button
             type="button"

@@ -582,6 +582,13 @@ button {
   border-radius: var(--pip-bubble-media-radius);
 }
 
+.msg-caption {
+  display: flow-root;
+  width: 0;
+  min-width: 100%;
+  padding: 4px 7px 5px;
+}
+
 .msg-bubble--panel {
   padding: var(--pip-bubble-pad-panel);
   border-radius: var(--pip-bubble-media-radius);
