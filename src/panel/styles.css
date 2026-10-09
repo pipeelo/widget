@@ -121,6 +121,15 @@ button {
   background: var(--pip-surface);
 }
 
+@media (min-width: 800px) and (pointer: fine) {
+  :root[data-standalone] .panel {
+    max-width: 720px;
+    margin: 0 auto;
+    border-inline: 1px solid var(--pip-border);
+    contain: layout;
+  }
+}
+
 .fatal {
   display: flex;
   align-items: center;

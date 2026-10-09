@@ -228,7 +228,7 @@ export function App({ params }: { params: PanelParams }) {
         name={name}
         brandGradient={!config?.widget_color}
         loading={configLoading && !config}
-        showClose={!fullscreen}
+        showClose={!ownsScreen}
         onClose={close}
       />
       {chat.socketDown && (
@@ -277,7 +277,7 @@ export function App({ params }: { params: PanelParams }) {
         </>
       )}
 
-      {!fullscreen && <Footer />}
+      {!ownsScreen && <Footer />}
     </div>
   );
 }

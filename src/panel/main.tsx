@@ -1,5 +1,8 @@
 import { render } from 'preact';
+import { uuidV4 } from '../shared/uuid';
 import { App, type PanelParams } from './App';
+import { isEmbedded } from './bridge';
+import { readStorage, writeStorage } from './lib/storage';
 import { STR } from './lib/strings';
 import './styles.css';
 
@@ -12,6 +15,15 @@ function dashed(hex: string): string {
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
 
+function pageToken(id: string): string {
+  const key = `pipeelo:token:${id}`;
+  const saved = readStorage(key);
+  if (saved) return saved;
+  const token = uuidV4();
+  writeStorage(key, token);
+  return token;
+}
+
 function parseParams(hash: URLSearchParams): PanelParams | null {
   const code = hash.get('c');
   if (code && /^[0-9a-f]{64}$/i.test(code)) {
@@ -19,7 +31,7 @@ function parseParams(hash: URLSearchParams): PanelParams | null {
     return { id: dashed(hex.slice(0, 32)), eid: dashed(hex.slice(32)), lastread: hash.get('lastread'), mode: hash.get('mode') ?? 'fullscreen' };
   }
   const id = hash.get('id');
-  const eid = hash.get('eid');
+  const eid = hash.get('eid') ?? (id && !isEmbedded() ? pageToken(id) : null);
   if (!id || !eid) return null;
   return { id, eid, lastread: hash.get('lastread'), mode: hash.get('mode') };
 }
@@ -32,6 +44,8 @@ if (
 ) {
   document.documentElement.setAttribute('data-density', 'mobile');
 }
+
+if (!isEmbedded()) document.documentElement.setAttribute('data-standalone', '');
 
 const root = document.getElementById('app');
 if (root) {
