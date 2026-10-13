@@ -49,30 +49,69 @@ async function copyCode(text: string): Promise<boolean> {
   return copyWithExecCommand(text);
 }
 
+type CopyTarget = 'pix' | 'boleto';
+
 export function PixCard({ pix }: { pix: PixDetails }) {
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState<CopyTarget | null>(null);
   const timerRef = useRef<number | undefined>(undefined);
 
   useEffect(() => () => window.clearTimeout(timerRef.current), []);
 
-  const onCopy = () => {
-    void copyCode(pix.code).then((done) => {
+  const onCopy = (target: CopyTarget, text: string) => {
+    void copyCode(text).then((done) => {
       if (!done) return;
-      setCopied(true);
+      setCopied(target);
       window.clearTimeout(timerRef.current);
-      timerRef.current = window.setTimeout(() => setCopied(false), COPIED_MS);
+      timerRef.current = window.setTimeout(() => setCopied(null), COPIED_MS);
     });
   };
 
+  const both = pix.code !== null && pix.digitableLine !== null;
+
   return (
     <div class="pix-card">
-      <span class="pix-label">{STR.pixTitle}</span>
+      <span class="pix-label">{pix.digitableLine ? STR.paymentTitle : STR.pixTitle}</span>
       {pix.productName && <span class="pix-name">{pix.productName}</span>}
       {pix.value !== null && <span class="pix-value">{brl.format(pix.value / 100)}</span>}
-      <span class="pix-code">{pix.code}</span>
-      <button type="button" class={'pix-copy' + (copied ? ' pix-copy--done' : '')} onClick={onCopy}>
-        {copied ? <CheckMark /> : <CopyIcon />}
-        {copied ? STR.codeCopied : STR.copyCode}
+      {pix.code && (
+        <PaymentOption
+          title={both ? STR.pixOption : null}
+          text={pix.code}
+          copyLabel={STR.copyCode}
+          copiedLabel={STR.codeCopied}
+          copied={copied === 'pix'}
+          onCopy={() => onCopy('pix', pix.code ?? '')}
+        />
+      )}
+      {pix.digitableLine && (
+        <PaymentOption
+          title={STR.boletoOption}
+          text={pix.digitableLine}
+          copyLabel={STR.copyLine}
+          copiedLabel={STR.lineCopied}
+          copied={copied === 'boleto'}
+          onCopy={() => onCopy('boleto', pix.digitableLine ?? '')}
+        />
+      )}
+    </div>
+  );
+}
+
+function PaymentOption(props: {
+  title: string | null;
+  text: string;
+  copyLabel: string;
+  copiedLabel: string;
+  copied: boolean;
+  onCopy: () => void;
+}) {
+  return (
+    <div class="pix-option">
+      {props.title && <span class="pix-option-title">{props.title}</span>}
+      <span class="pix-code">{props.text}</span>
+      <button type="button" class={'pix-copy' + (props.copied ? ' pix-copy--done' : '')} onClick={props.onCopy}>
+        {props.copied ? <CheckMark /> : <CopyIcon />}
+        {props.copied ? props.copiedLabel : props.copyLabel}
       </button>
     </div>
   );

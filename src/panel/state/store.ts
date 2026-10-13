@@ -17,7 +17,8 @@ export type MessageKind =
 
 export interface PixDetails {
   productName: string | null;
-  code: string;
+  code: string | null;
+  digitableLine: string | null;
   value: number | null;
 }
 
@@ -154,10 +155,14 @@ function replyToFromApi(raw: ApiMessage['reply_to']): ReplyTo | null {
 
 function pixFromApi(item: ApiMessage): PixDetails | null {
   if ((item.type || '').toLowerCase() !== 'order_details') return null;
-  if (typeof item.code !== 'string' || !item.code) return null;
+  const code = typeof item.code === 'string' && item.code ? item.code : null;
+  const digitableLine =
+    typeof item.digitable_line === 'string' && item.digitable_line.trim() ? item.digitable_line.trim() : null;
+  if (!code && !digitableLine) return null;
   return {
     productName: typeof item.product_name === 'string' && item.product_name ? item.product_name : null,
-    code: item.code,
+    code,
+    digitableLine,
     value: typeof item.value === 'number' && Number.isInteger(item.value) ? item.value : null,
   };
 }

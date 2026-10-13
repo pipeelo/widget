@@ -36,6 +36,7 @@ export interface ApiMessage {
   selected_value?: string | null;
   product_name?: string | null;
   code?: string | null;
+  digitable_line?: string | null;
   value?: number | null;
   latitude?: number | null;
   longitude?: number | null;
