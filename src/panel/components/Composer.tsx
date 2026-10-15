@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import type { MediaField } from '../api/types';
 import { cameraSupported } from '../lib/camera';
 import { classifyFile, ACCEPT_CAMERA, FILE_ACCEPT } from '../lib/files';
+import { prepareImage } from '../lib/image';
 import { requestPosition, type GeoError } from '../lib/geo';
 import { coarsePointer, finePointer } from '../lib/pointer';
 import type { MediaError } from '../lib/policy';
@@ -156,6 +157,7 @@ export function Composer(props: {
   const errorTimerRef = useRef<number | undefined>(undefined);
   const sendingVoiceRef = useRef(false);
   const geoRequestRef = useRef(0);
+  const stageRequestRef = useRef(0);
   const voice = useVoiceRecorder();
 
   const recording = voice.state === 'recording';
@@ -236,8 +238,16 @@ export function Composer(props: {
 
   const keepFocus = (event: Event) => event.preventDefault();
 
-  const stage = (file: File) => {
+  const stage = async (picked: File) => {
     if (props.disabled || recording) return;
+    const request = ++stageRequestRef.current;
+    const prep = await prepareImage(picked);
+    if (request !== stageRequestRef.current) return;
+    if (prep.kind === 'failed') {
+      showError(STR.imageUnreadable);
+      return;
+    }
+    const file = prep.kind === 'converted' ? prep.file : picked;
     const result = classifyFile(file);
     if (!result.ok) {
       showError(result.error);

@@ -53,10 +53,12 @@ const RULES: MediaRule[] = [
   },
 ];
 
+const CONVERTIBLE_IMAGE_MIMES = ['image/heic', 'image/heif', 'image/webp'];
+
 function acceptFor(...fields: MediaField[]): string {
-  return RULES.filter((rule) => fields.indexOf(rule.field) !== -1)
-    .map((rule) => rule.mimes.join(','))
-    .join(',');
+  const mimes = RULES.filter((rule) => fields.indexOf(rule.field) !== -1).map((rule) => rule.mimes.join(','));
+  if (fields.indexOf('image') !== -1) mimes.push(CONVERTIBLE_IMAGE_MIMES.join(','));
+  return mimes.join(',');
 }
 
 export const FILE_ACCEPT = acceptFor('image', 'audio', 'video', 'document');

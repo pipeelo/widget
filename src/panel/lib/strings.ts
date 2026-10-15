@@ -55,6 +55,7 @@ export const STR = {
   startError: 'Não foi possível iniciar o chat.',
   fileTooLarge: (limit: string) => `Arquivo muito grande (máx. ${limit}).`,
   fileUnsupported: 'Tipo de arquivo não suportado.',
+  imageUnreadable: 'Não consegui ler essa foto. Tente tirar um print da tela ou enviar em JPG.',
   documentLabel: 'Documento',
   openFile: 'Abrir',
   imageAlt: 'Imagem enviada na conversa',
